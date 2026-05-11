@@ -1,0 +1,45 @@
+{
+  "network": "sentrix-testnet",
+  "chainId": 7120,
+  "eid": 40998,
+  "eidNote": "Placeholder until LayerZero Labs assigns an official EID via the chain integration process.",
+  "deployer": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762",
+  "deployerLabel": "Sentrix Testnet Faucet (premined wallet, 100M SRX-test)",
+  "deployedAt": "2026-05-12T02:00Z",
+  "commit": "3f05d1e",
+  "contracts": {
+    "EndpointV2": {
+      "address": "0x00e47A4b45D0147fA2D23D7021b44353966943D9",
+      "txHash": "0x0caa4c46e2b3af67a2190268cdad5bacdc48b39e41f142ded9eef444c8cef3a8",
+      "blockNumber": 3375108,
+      "constructorArgs": {
+        "_eid": 40998,
+        "_owner": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762"
+      }
+    },
+    "SendUln302": {
+      "address": "0x507a78066d661Ddc5dfc24fd35b598B94e286A07",
+      "constructorArgs": {
+        "_endpoint": "0x00e47A4b45D0147fA2D23D7021b44353966943D9",
+        "_treasuryGasLimit": 1000000,
+        "_treasuryGasForFeeCap": 1000000000
+      }
+    },
+    "ReceiveUln302": {
+      "address": "0x8DDDA8aac82049b39a44F0132B8A62388852f86b",
+      "constructorArgs": {
+        "_endpoint": "0x00e47A4b45D0147fA2D23D7021b44353966943D9"
+      }
+    }
+  },
+  "libraryRegistration": {
+    "send": {
+      "txHash": "0x6672aaf279c75a1873852da5665e9cf595f8de6c0fc8112900738e765f953dd7",
+      "blockNumber": 3375187
+    },
+    "receive": {
+      "txHash": "0x39a2d4a9efdd16476164ebbfe4fdd0143c92389f4eecc34af9ebf60fc5be4cbe",
+      "blockNumber": 3375193
+    }
+  }
+}
