@@ -1,0 +1,30 @@
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "scripts"
+solc = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+verbosity = 2
+
+# Pull LayerZero V2 sources from the cloned upstream repo.
+# Remappings mirror LZ's own foundry.toml so their internal imports resolve.
+remappings = [
+    "@layerzerolabs/lz-evm-protocol-v2/=LayerZero-v2/packages/layerzero-v2/evm/protocol/",
+    "@layerzerolabs/lz-evm-messagelib-v2/=LayerZero-v2/packages/layerzero-v2/evm/messagelib/",
+    "@layerzerolabs/lz-evm-oapp-v2/=LayerZero-v2/packages/layerzero-v2/evm/oapp/",
+    "@openzeppelin/contracts/=LayerZero-v2/node_modules/.store/@openzeppelin-contracts-npm-4.9.5-7a5781d6a4/package/",
+    "@openzeppelin/contracts-upgradeable/=LayerZero-v2/node_modules/.store/@openzeppelin-contracts-upgradeable-npm-4.9.5-575d34f559/package/",
+    "solidity-bytes-utils/=LayerZero-v2/node_modules/.store/solidity-bytes-utils-npm-0.8.1-7f21a6beca/package/",
+    "hardhat-deploy/=LayerZero-v2/node_modules/.store/hardhat-deploy-npm-0.11.27-667c060b49/package/",
+    "forge-std/=lib/forge-std/src/",
+]
+
+[rpc_endpoints]
+sentrix_testnet = "https://testnet-rpc.sentrixchain.com"
+sentrix_mainnet = "https://rpc.sentrixchain.com"
+
+[etherscan]
+sentrix_testnet = { key = "dummy", url = "https://testnet-scan.sentrixchain.com/api", chain = 7120 }
+sentrix_mainnet = { key = "dummy", url = "https://scan.sentrixchain.com/api", chain = 7119 }
