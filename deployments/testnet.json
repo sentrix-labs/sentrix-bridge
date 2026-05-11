@@ -5,8 +5,8 @@
   "eidNote": "Placeholder until LayerZero Labs assigns an official EID via the chain integration process.",
   "deployer": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762",
   "deployerLabel": "Sentrix Testnet Faucet (premined wallet, 100M SRX-test)",
-  "deployedAt": "2026-05-12T02:00Z",
-  "commit": "3f05d1e",
+  "lastUpdated": "2026-05-12T02:30Z",
+  "commit": "9db33d8",
   "contracts": {
     "EndpointV2": {
       "address": "0x00e47A4b45D0147fA2D23D7021b44353966943D9",
@@ -30,6 +30,17 @@
       "constructorArgs": {
         "_endpoint": "0x00e47A4b45D0147fA2D23D7021b44353966943D9"
       }
+    },
+    "Treasury": {
+      "address": "0xEf7478Af12828936a61B4a1C728D5aE35e517B87",
+      "constructorArgs": "none (Ownable inherited)"
+    },
+    "PriceFeed": {
+      "address": "0xCcA761AbA6Fff4B077075F81cF1d9Ce494b0B509",
+      "note": "Deployed non-upgradeable for testnet POC. Proxied modifier bypassed by calling initialize directly on implementation. Re-deploy with TransparentUpgradeableProxy before mainnet.",
+      "initialize": {
+        "_priceUpdater": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762"
+      }
     }
   },
   "libraryRegistration": {
@@ -41,5 +52,34 @@
       "txHash": "0x39a2d4a9efdd16476164ebbfe4fdd0143c92389f4eecc34af9ebf60fc5be4cbe",
       "blockNumber": 3375193
     }
+  },
+  "endpointDefaults": {
+    "selfEid": 40998,
+    "sendLibrary": "0x507a78066d661Ddc5dfc24fd35b598B94e286A07",
+    "receiveLibrary": "0x8DDDA8aac82049b39a44F0132B8A62388852f86b",
+    "receiveLibraryGracePeriod": 0
+  },
+  "ulnConfigs": {
+    "note": "Placeholder Executor + DVN = deployer address. Acceptable for LZ Labs application submission (proves protocol wiring works). Real Executor (proxied) + Sentrix-operated DVN multi-signer deploy in Step 4.",
+    "executor": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762",
+    "executorMaxMessageSize": 10000,
+    "requiredDVNs": ["0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762"],
+    "requiredDVNCount": 1,
+    "optionalDVNs": [],
+    "optionalDVNCount": 0,
+    "optionalDVNThreshold": 0,
+    "confirmations": 1
+  },
+  "next": {
+    "step4": [
+      "Deploy Executor (upgradeable proxy) and replace placeholder in ulnConfigs.executor",
+      "Deploy Sentrix-operated DVN (single-signer initially, quorum=1) and replace placeholder in ulnConfigs.requiredDVNs",
+      "Submit LayerZero Labs chain-integration application"
+    ],
+    "step5": [
+      "Once LZ Labs assigns official EID, redeploy EndpointV2 + reconfigure all wiring",
+      "Onboard external DVN (Nethermind / Polyhedra / Google Cloud) for cross-chain message verification",
+      "First Sentrix Testnet ↔ Sepolia Testnet message round-trip"
+    ]
   }
 }
