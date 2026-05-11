@@ -1,0 +1,56 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "domain": 11155111,
+  "deployer": "0x0067dAfBD0A914D9d4C1a210b408b78d5D272087",
+  "deployerLabel": "Sentrix-bridge dev wallet (testnet-only, 0.05 ETH from Google Cloud faucet)",
+  "deployedAt": "2026-05-12T03:00Z",
+  "preDeployedHyperlane": {
+    "Mailbox": "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766",
+    "merkleTreeHook": "0x4917a9746A7B6E0A57159cCb7F5a6744247f2d0d",
+    "defaultIsm": "0x899D470e1251770eBa1b426c48aF614bdC55D583",
+    "validatorAnnounce": "0xE6105C59480a1B7DD3E4f28153aFdbE12F4CfCD9",
+    "source": "@hyperlane-xyz/registry chains/sepolia/addresses.json"
+  },
+  "ourDeployments": {
+    "NoopIsm": {
+      "address": "0x1b11f19EbB371A88AF8be0B5B4a7bAa5b471246d",
+      "note": "Permissive ISM for testnet demo. ANY caller can relay messages — must be replaced with MultisigIsm/AggregationIsm before mainnet."
+    },
+    "TestRecipient": {
+      "address": "0x843fA9bCB2bbBd2993c524a420a1E18DE225b258",
+      "interchainSecurityModule": "0x1b11f19EbB371A88AF8be0B5B4a7bAa5b471246d"
+    }
+  },
+  "crossChainTest": {
+    "direction": "Sentrix Testnet (7120) -> Sepolia (11155111)",
+    "messageBody": "HELLO SEPOLIA FROM SENTRIX TESTNET via Hyperlane",
+    "sentrixDispatch": {
+      "tx": "0x44d8ef015e625b9598e13b89a079d4c44b3338146e0887da5e10b002fd49bcfd",
+      "url": "https://testnet-scan.sentrixchain.com/tx/0x44d8ef015e625b9598e13b89a079d4c44b3338146e0887da5e10b002fd49bcfd"
+    },
+    "sepoliaProcess": {
+      "tx": "0x16e036e5e4c331a0105c58b711425d31a03a0384e8237f6fdafa7c0cca495ff2",
+      "url": "https://sepolia.etherscan.io/tx/0x16e036e5e4c331a0105c58b711425d31a03a0384e8237f6fdafa7c0cca495ff2",
+      "block": 10844289,
+      "status": 1
+    },
+    "verification": "Sepolia TestRecipient.lastData() decodes to the dispatched body. Origin domain = 7120 (Sentrix Testnet). Sender = Sentrix faucet deployer.",
+    "result": "PASS - cross-chain bridge demonstrably functional Sentrix Testnet -> Sepolia."
+  },
+  "limitations": [
+    "NoopIsm on Sepolia is permissive. Anyone with a valid Hyperlane message can call Sepolia Mailbox.process and have it land on our TestRecipient. Mainnet must use MultisigIsm with vetted validators.",
+    "We acted as the relayer manually (called Sepolia Mailbox.process from our wallet). Production requires automated validator + relayer agents running 24/7.",
+    "Demo is one-way: Sentrix Testnet -> Sepolia. Reverse direction requires reciprocal config (Sentrix-side ISM accepting Sepolia messages + cross-chain delivery from Sepolia)."
+  ],
+  "next": {
+    "production_path": [
+      "Replace NoopIsm with StaticMessageIdMultisigIsm configured with a real validator set",
+      "Deploy + run Hyperlane validator agent (Rust binary) — signs checkpoints of Sentrix Mailbox",
+      "Deploy + run Hyperlane relayer agent — automates the manual process step we did tonight",
+      "Test reverse direction (Sepolia -> Sentrix) with similar wiring on Sentrix side",
+      "Token wrapping (HypERC20Collateral for SRX bridging)",
+      "Audit on the security-critical contracts before mainnet"
+    ]
+  }
+}
