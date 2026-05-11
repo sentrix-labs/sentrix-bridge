@@ -1,0 +1,52 @@
+{
+  "network": "sentrix-testnet",
+  "chainId": 7120,
+  "domain": 7120,
+  "domainNote": "Hyperlane v3 convention = chain_id. No central EID assignment needed.",
+  "deployer": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762",
+  "deployedAt": "2026-05-12T02:50Z",
+  "hyperlaneVersion": "v3",
+  "license": "Apache 2.0",
+  "contracts": {
+    "Mailbox": {
+      "address": "0x9741D99270aF14D4baca0e387B6ac0500b9a288F",
+      "constructorArgs": {"_localDomain": 7120},
+      "initialize": {
+        "_owner": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762",
+        "_defaultIsm": "0x28834AA535F3130f0F60571Ac7a813195aE56eC6",
+        "_defaultHook": "0x6A192C8fEA612CA3aa204035e51F6a624b0F1467",
+        "_requiredHook": "0x6A192C8fEA612CA3aa204035e51F6a624b0F1467"
+      }
+    },
+    "NoopIsm": {
+      "address": "0x28834AA535F3130f0F60571Ac7a813195aE56eC6",
+      "note": "Permissive ISM — accepts all messages. Suitable only for testnet POC; replace with MultisigIsm or AggregationIsm before any mainnet rollout."
+    },
+    "MerkleTreeHook": {
+      "address": "0x6A192C8fEA612CA3aa204035e51F6a624b0F1467",
+      "constructorArgs": {"_mailbox": "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"}
+    },
+    "TestRecipient": {
+      "address": "0x1feBBD141FafCC6319F6B508d01c7d0F72CfF4c4",
+      "note": "Reference recipient implementing IMessageRecipient.handle(uint32,bytes32,bytes). Exposes lastData/lastSender/lastOrigin for inspection."
+    }
+  },
+  "selfChainTest": {
+    "dispatchTx": "0x601e9d13418ef43bec333bf294e34b3719443ee39c6495f49f571206be498e64",
+    "processTx": "0x104f94b5854bd43b1624a03a9f37c204a71035587ed2e7d51eb1f095a0a89bfc",
+    "messageBody": "Sentrix Hyperlane self-msg #2 (fixed)",
+    "messageDeliveredAt": "TestRecipient.lastData() == hex-encoded body",
+    "result": "PASS — end-to-end same-chain dispatch+process+handle round trip verified."
+  },
+  "next": {
+    "crossChain": [
+      "Get Sepolia testnet ETH funded wallet (operator action)",
+      "Hyperlane has pre-deployed Mailbox on Sepolia at 0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766",
+      "Deploy MultisigIsm on Sentrix Testnet that accepts Sentrix-operated validator signing checkpoints from Sepolia",
+      "Deploy TestRecipient on Sepolia + configure ISM to accept Sentrix domain (7120)",
+      "Run Hyperlane validator agent (Rust binary) as systemd/docker on vps4 or vps6 — signs checkpoints for Sentrix Mailbox",
+      "Run Hyperlane relayer agent — watches Sentrix + Sepolia, delivers inbound messages",
+      "Send Sentrix → Sepolia test message + wait for delivery"
+    ]
+  }
+}
