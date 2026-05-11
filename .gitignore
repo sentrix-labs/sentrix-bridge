@@ -1,6 +1,9 @@
 # Third-party upstream — cloned via `git clone https://github.com/LayerZero-Labs/LayerZero-v2`
 LayerZero-v2/
 
+# Third-party upstream — `git clone https://github.com/hyperlane-xyz/hyperlane-monorepo`
+hyperlane/hyperlane-monorepo/
+
 # Foundry submodules / build artifacts
 lib/
 out/
