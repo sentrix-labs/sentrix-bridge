@@ -15,8 +15,8 @@ import { SentrixDexPair as PairTemplate } from "../generated/templates";
 import { ERC20 } from "../generated/SentrixDexFactory/ERC20";
 
 // Singleton factory entity id — addresses-as-lowercase-hex per Graph convention.
-// TODO: replace with the real factory address when pinned in subgraph.yaml.
-const FACTORY_ID = "0x0000000000000000000000000000000000000000";
+// SentrixV2Factory mainnet (chain 7119), from sentrix-dex/deployments/7119.json.
+const FACTORY_ID = "0xc5344f0dde0b9916217449ad9222e446475ad936";
 
 const ZERO_BI = BigInt.fromI32(0);
 const ZERO_BD = BigDecimal.fromString("0");

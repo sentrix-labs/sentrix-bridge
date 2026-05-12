@@ -28,7 +28,8 @@ File: `projects/sentrix-dex/index.js`
 const { sumTokens2 } = require("../helper/unwrapLPs");
 const { getLogs } = require("../helper/cache/getLogs");
 
-const FACTORY = "0x___"; // sentrix-dex V2 factory address (TODO: confirm)
+// SentrixV2Factory mainnet, from sentrix-dex/deployments/7119.json (2026-05-01)
+const FACTORY = "0xC5344f0DDE0B9916217449Ad9222e446475aD936";
 const PAIR_CREATED_TOPIC = "0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9"; // standard UniV2
 
 async function tvl(api) {
@@ -36,7 +37,10 @@ async function tvl(api) {
     api,
     target: FACTORY,
     topics: [PAIR_CREATED_TOPIC],
-    fromBlock: 1, // TODO: pin to actual factory deploy block
+    // TODO: pin actual factory deploy block — query via
+    //   cast receipt 0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf --rpc-url https://rpc.sentrixchain.com | grep blockNumber
+    // Until pinned, walks from block 1 which is wasteful on TVL refresh.
+    fromBlock: 1,
     onlyArgs: true,
     eventAbi: "event PairCreated(address indexed token0, address indexed token1, address pair, uint256)",
   });
@@ -50,12 +54,17 @@ async function tvl(api) {
 }
 
 module.exports = {
-  methodology: "Counts the locked tokens across all sentrix-dex V2 pairs.",
+  methodology: "Counts the locked tokens across all sentrix-dex V2 pairs (factory 0xC5344f0DDE0B9916217449Ad9222e446475aD936). Uses on-chain PairCreated events as the source of truth for pair discovery and sums ERC20 balances locked in each pair contract.",
   sentrix: {
     tvl,
   },
 };
 ```
+
+**Verified pre-submit:**
+- Factory contract has Mint/Burn/Swap/Sync events matching standard UniV2 V2 ABI (no divergence).
+- INIT_CODE_HASH `0xf7d8b4d1ce6c92cb3ce6b366dfb5977578db74e308b88facd5966df9e2a029dd` matches both mainnet + testnet factory deploys.
+- WSRX wrapped at `0x4693b113e523A196d9579333c4ab8358e2656553` is the canonical wrapped-native asset (corresponds to `nativeBalance` or `tokens.sentrix.address("0x0")` in DefiLlama's normalizer).
 
 ### Chain metadata addition
 
@@ -86,13 +95,16 @@ sentrix: {
 | GitHub org | https://github.com/sentrix-labs | Public, with sentrix repo (chain) + canonical-contracts + sentrix-bridge |
 | Whitepaper | v1.2.4 final | At sentrix-labs/whitepaper@b243db8 |
 
-## Required: factory address for sentrix-dex
+## Required: factory deploy block
 
-Operator needs to provide:
-- sentrix-dex V2 factory address on mainnet (chain 7119)
-- Deploy block (for `fromBlock` in the adapter)
+Factory address is **resolved**: `0xC5344f0DDE0B9916217449Ad9222e446475aD936` (mainnet 7119) from `sentrix-dex/deployments/7119.json`, deployed 2026-05-01 with founder v3 wallet as gas-only signer + authority `0xa25236925bc10954e0519731cc7ba97f4bb5714b` as feeToSetter.
 
-If unknown, can `grep -rE "factory|UniswapV2Factory" ~/Sentriscloud/sentrix-dex` to find. The factory is the V2 Factory pattern, address can be queried from any pair's `factory()` view.
+Open item: deploy block height. Query via:
+```bash
+cast receipt 0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf \
+  --rpc-url https://rpc.sentrixchain.com | grep blockNumber
+```
+And paste into `fromBlock` field of the adapter for efficient log scanning.
 
 ## Application steps
 

@@ -25,19 +25,22 @@ Mirrors Uniswap's official V2 subgraph pattern, adapted for Sentrix's `dex.sentr
 
 ### Data sources
 
-- `Factory` — sentrix-dex V2 factory (TBD address)
+- `Factory` — sentrix-dex V2 factory
+  - Mainnet (7119): `0xC5344f0DDE0B9916217449Ad9222e446475aD936` (verified, deployed 2026-05-01)
+  - Testnet (7120): `0x8565392086cbA8D39cBba1F6f60ad1F1A17651C7`
+  - INIT_CODE_HASH: `0xf7d8b4d1ce6c92cb3ce6b366dfb5977578db74e308b88facd5966df9e2a029dd` (both networks)
   - Event: `PairCreated(address,address,address,uint256)`
 - Template: `Pair` — instantiated dynamically per pair
   - Events: `Swap`, `Mint`, `Burn`, `Sync` (for reserve updates)
 
 ### Block range
 
-Start at the factory deploy block on mainnet (7119). Operator to confirm by running:
+Start at the factory deploy block. Mainnet factory was deployed in tx `0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf` (per `sentrix-dex/deployments/7119.json`). Resolve the block number with:
 ```bash
-cast call --rpc-url https://rpc.sentrixchain.com <factory> "PAIR_HASH()(bytes32)"  # if exposed
-# OR
-cast logs --rpc-url https://rpc.sentrixchain.com --from-block 1 --to-block latest --address <factory>
+cast receipt 0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf \
+  --rpc-url https://rpc.sentrixchain.com | grep blockNumber
 ```
+Pin the result into `subgraph.yaml` `startBlock`.
 
 ## Phase 2 scope — CoinBlast launchpad
 

@@ -16,13 +16,14 @@ dataSources:
     # the network alias 'sentrix' to https://rpc.sentrixchain.com.
     network: sentrix
     source:
-      # TODO: confirm sentrix-dex V2 Factory address from sentrix-labs/sentrix-dex repo
-      # before submitting subgraph. Placeholder kept as 0x0 so the schema/manifest
-      # validates but no events are indexed until the real address is pinned.
-      address: "0x0000000000000000000000000000000000000000"
+      # SentrixV2Factory mainnet deploy (chain 7119) from sentrix-dex/deployments/7119.json,
+      # deployed 2026-05-01. INIT_CODE_HASH 0xf7d8b4d1ce6c92cb3ce6b366dfb5977578db74e308b88facd5966df9e2a029dd.
+      # For testnet (7120), switch to 0x8565392086cbA8D39cBba1F6f60ad1F1A17651C7 + change network alias to sentrix-testnet.
+      address: "0xC5344f0DDE0B9916217449Ad9222e446475aD936"
       abi: SentrixDexFactory
-      # TODO: confirm Factory deploy block. Until pinned, indexes from block 1
-      # which is wasteful — should be the factory's createPair tx block.
+      # TODO: pin Factory deploy block. The factory tx is
+      # 0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf — operator
+      # can query its block height via cast or scan.sentrixchain.com and replace below.
       startBlock: 1
     mapping:
       kind: ethereum/events
