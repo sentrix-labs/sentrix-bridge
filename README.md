@@ -1,10 +1,49 @@
 # sentrix-bridge
 
-Sentrix Chain ↔ external chain bridge integration prep. Tracks the LayerZero V2 integration path; future home for OFT (Omnichain Fungible Token) wrappers and any other bridge protocol work.
+Cross-chain bridge integration for Sentrix Chain. Two bridge protocols live in parallel:
 
-## Status
+- **Hyperlane v3** — message-passing + warp routes (token bridging). First working route: **Sentrix Testnet ↔ Sepolia**. Status: protocol layer verified, production security pending.
+- **LayerZero V2** — endpoint stack deployed on Sentrix Testnet, awaiting LayerZero Labs chain assignment + production DVN/Executor wiring.
 
-**Phase 0 — Step 1 prep.** Build pipeline working, deploy script written, awaiting testnet deployment + LayerZero Labs chain-integration form submission.
+> **Safety status — TESTNET ONLY.** Both routes are demonstration deployments. The Hyperlane testnet route uses `NoopIsm` (no validation), so an attacker can forge any inbound message. Do **not** bridge value through this stack until the production security path lands. See [#3 — production MultisigIsm setup](https://github.com/sentrix-labs/sentrix-bridge/issues/3) and [#5 — re-verify user-entry path](https://github.com/sentrix-labs/sentrix-bridge/issues/5).
+
+## Verified flows
+
+### Hyperlane v3 — Sentrix Testnet (7120) → Sepolia (11155111)
+
+End-to-end message delivery verified on `2026-05-12` (commit `531ff64`). A `MessageDispatched` event on Sentrix Testnet's Mailbox landed at Sepolia's TestRecipient as `Handled("HELLO SEPOLIA FROM SENTRIX TESTNET via Hyperlane", originDomain=7120)` after a manual relay (`process(...)`) from our deployer wallet.
+
+| Side | Mailbox | Our deployments |
+|---|---|---|
+| Sentrix Testnet | `0x9741D99270aF14D4baca0e387B6ac0500b9a288F` | NoopIsm `0x28834A...e56eC6` · MerkleTreeHook `0x6A192C...0F1467` · TestRecipient `0x1feBBD...CfF4c4` |
+| Sepolia | `0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766` (pre-deployed by Hyperlane Labs) | NoopIsm `0x1b11f1...246d` · TestRecipient `0x843fA9...258` |
+
+Full deployment metadata in `deployments/hyperlane-{testnet,sepolia}.json`.
+
+### LayerZero V2 — Sentrix Testnet endpoint stack
+
+| Contract | Address | Notes |
+|---|---|---|
+| `EndpointV2` | `0x00e47A4b45D0147fA2D23D7021b44353966943D9` | eid=40998 placeholder — awaiting LayerZero Labs assignment ([#2](https://github.com/sentrix-labs/sentrix-bridge/issues/2)) |
+| `SendUln302` | `0x507a78066d661Ddc5dfc24fd35b598B94e286A07` | registered in endpoint |
+| `ReceiveUln302` | `0x8DDDA8aac82049b39a44F0132B8A62388852f86b` | registered in endpoint |
+
+Production stack (PriceFeed, Executor, Treasury, DVN) deferred — tracked in [#4](https://github.com/sentrix-labs/sentrix-bridge/issues/4).
+
+## Multi-chain roadmap
+
+Per-destination bridge status is tracked in [`docs/multichain-roadmap.md`](docs/multichain-roadmap.md). Current state at a glance:
+
+| Destination | Hyperlane | LayerZero V2 | Status |
+|---|---|---|---|
+| Sepolia (Ethereum testnet) | ✅ message verified | — | Phase 0 demo only |
+| BSC Testnet | — | — | Planned (Phase 1) |
+| Polygon Amoy | — | — | Planned (Phase 1) |
+| Base Sepolia | — | — | Planned (Phase 1) |
+| Arbitrum Sepolia | — | — | Planned (Phase 1) |
+| Optimism Sepolia | — | — | Planned (Phase 1) |
+
+Mainnet expansion is **gated on** (a) production MultisigIsm + agent infrastructure, (b) resolution of [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580) (the EVM value-passing bug that breaks the user-entry path), and (c) an external audit pass.
 
 ## Setup
 
@@ -25,7 +64,11 @@ cd ..
 forge build
 ```
 
-## Deploy LayerZero V2 core to Sentrix Testnet (chain 7120)
+The `.env.example` lists every variable the scripts touch — copy to `.env` and fill in your testnet-only deployer key + RPC URLs.
+
+## Deploy + verify
+
+### LayerZero V2 core (Sentrix Testnet)
 
 ```bash
 export DEPLOYER_PK=<sentrix-testnet-deployer-private-key>
@@ -36,13 +79,27 @@ forge script scripts/DeployLZ-SentrixTestnet.s.sol:DeployLZSentrixTestnet \
   --legacy
 ```
 
-Deploys:
-- `EndpointV2(eid=40998, owner=deployer)`
-- `SendUln302(endpoint, treasuryGasLimit=1_000_000, treasuryGasForFeeCap=1_000_000_000)`
-- `ReceiveUln302(endpoint)`
-- Registers both libraries in `EndpointV2.registerLibrary`.
+Deploys `EndpointV2(eid=40998, owner=deployer)`, `SendUln302`, `ReceiveUln302`, registers both libraries.
 
-EID 40998 is a placeholder until LayerZero Labs assigns the official Sentrix Testnet EID through their chain-integration process.
+> Sentrix's `eth_getBlockByNumber(full=true)` returns short tx-hash arrays where foundry's fork-initializer expects full tx objects. If `forge script` errors on fork instantiation, fall back to direct `cast send --create` — pattern documented in [`docs/runbook-step2-broadcast.md`](docs/runbook-step2-broadcast.md).
+
+### Hyperlane testnet round-trip
+
+```bash
+# 1. Sentrix Testnet stack
+forge script hyperlane/scripts/DeployHyperlaneSentrixTestnet.s.sol --rpc-url sentrix_testnet --broadcast --legacy
+
+# 2. Sepolia stack
+forge script hyperlane/scripts/DeployHyperlaneSepolia.s.sol --rpc-url sepolia --broadcast
+
+# 3. Dispatch from Sentrix → Sepolia
+forge script hyperlane/scripts/DispatchToSepolia.s.sol --rpc-url sentrix_testnet --broadcast --legacy
+
+# 4. Manual relay on Sepolia
+forge script hyperlane/scripts/ProcessOnSepolia.s.sol --rpc-url sepolia --broadcast
+```
+
+Both `Dispatch` (Sentrix side) and `Handle` (Sepolia side) emit on the canonical Mailbox contracts and are observable via tx hash + explorer URL in `deployments/hyperlane-warp-route.json`.
 
 ## Layout
 
@@ -50,19 +107,27 @@ EID 40998 is a placeholder until LayerZero Labs assigns the official Sentrix Tes
 |---|---|
 | `foundry.toml` | Build config: Sentrix RPC endpoints + LZ + OZ v4 remappings (PnP store paths) |
 | `scripts/DeployLZ-SentrixTestnet.s.sol` | LZ V2 core deployment to Sentrix Testnet |
+| `hyperlane/` | Hyperlane v3 deploy scripts + monorepo submodule |
+| `deployments/*.json` | Per-network deployment metadata (addresses, tx hashes, deployer notes) |
+| `docs/` | Runbooks + LayerZero Labs application draft + multichain roadmap |
+| `subgraph/` | Source-of-truth subgraph for chain analytics (separate concern from bridge — kept here for org convenience) |
 | `LayerZero-v2/` *(gitignored)* | Third-party clone — `github.com/LayerZero-Labs/LayerZero-v2` |
 | `lib/` *(gitignored)* | OZ v4 + forge-std clones for foundry remappings |
 
-## What's deferred to Step 2+
+## Open issues
 
-- `PriceFeed` (upgradeable proxy pattern)
-- `Executor` + `Treasury`
-- DVN deployment + registration
-- Cross-chain message wiring (Sentrix Testnet → Sepolia / BSC Testnet)
-- OFT wrapper for SRX (testnet only)
-- LayerZero Labs chain-integration application
+| # | Title | Status |
+|---|---|---|
+| [#2](https://github.com/sentrix-labs/sentrix-bridge/issues/2) | Track Sentrix EID assignment from LayerZero Labs | Application drafted, awaiting submission |
+| [#3](https://github.com/sentrix-labs/sentrix-bridge/issues/3) | Hyperlane production MultisigIsm setup | Runbook drafted, validator-set TBD |
+| [#4](https://github.com/sentrix-labs/sentrix-bridge/issues/4) | LZ — deploy PriceFeed + Executor + Treasury + DVN for production | Scoping |
+| [#5](https://github.com/sentrix-labs/sentrix-bridge/issues/5) | Re-verify cross-chain user-entry path after sentrix-labs/sentrix#580 closes | Blocked on upstream chain bug |
 
 ## License
 
-Deploy script + tooling: BUSL-1.1 (matches the Sentrix chain repo).
-Cloned LayerZero V2 source: LZBL-1.2 (LayerZero Business License — converts to GPL v2 on Dec 14, 2027).
+| Path | License |
+|---|---|
+| Deploy scripts, runbooks, configs, subgraph | BUSL-1.1 (matches the chain repo) |
+| Vendored `LayerZero-v2/` | LZBL-1.2 (LayerZero Business License — converts to GPL v2 on Dec 14, 2027) |
+| Vendored `lib/openzeppelin-contracts-v4/` | MIT (OpenZeppelin) |
+| Vendored `lib/forge-std/` | MIT (Foundry) |
