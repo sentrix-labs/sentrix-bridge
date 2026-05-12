@@ -1,8 +1,9 @@
 {
   "name": "wSRX warp route (Sentrix Testnet <-> Sepolia)",
-  "status": "FUNCTIONAL via WSRX-wrap workaround — value bridged user-to-user end-to-end",
+  "status": "PROTOCOL-PROVEN-BUT-USER-ENTRY-BROKEN — bridge mechanism works on-chain; users cannot currently wrap SRX -> wSRX because of chain-side EVM gate",
+  "honestlyUpdated": "2026-05-12 after WSRX.deposit verification — pre-existing wSRX balance enabled the demo, fresh users blocked at deposit step. See bug-reports/2026-05-12-evm-value-passing-bug.md root cause section.",
   "workingPath": {
-    "summary": "SRX (native) -> WSRX wrap -> HypERC20Collateral.transferRemote -> Sepolia HypERC20.handle -> wSRX minted to recipient",
+    "summary": "SRX (native) -> WSRX wrap [BROKEN: gate zeros msg.value] -> HypERC20Collateral.transferRemote [WORKS for pre-existing wSRX] -> Sepolia HypERC20.handle [WORKS] -> wSRX minted to recipient",
     "components": {
       "WSRX_sentrix": "0x85d5E7694AF31C2Edd0a7e66b7c6c92C59fF949A",
       "HypERC20Collateral_sentrix": "0xfb8190927034c447Fc29B1cfbF4f4F000969bb32",
