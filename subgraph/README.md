@@ -71,7 +71,7 @@ Phase 3 is deferred until system-precompile design is in place.
 The Graph hosted service does not support Sentrix (chain 7119) yet — would need to either:
 
 1. **Apply to The Graph for chain support** — typically 1-3 months calendar, requires demand signal
-2. **Self-host graph-node** — Rust binary, deploy on vps6 alongside indexer-rs
+2. **Self-host graph-node** — Rust binary, deploy on operator infrastructure alongside indexer-rs
 
 For self-hosting:
 
@@ -79,7 +79,7 @@ For self-hosting:
 # graph-node config (operator to wire)
 ethereum: "sentrix:https://rpc.sentrixchain.com"
 ipfs: "https://api.thegraph.com/ipfs/"  # or self-host IPFS
-postgres-url: "postgres://...@vps6:5432/graph"
+postgres-url: "postgres://...@<host>:5432/graph"
 ```
 
 Deploy subgraph via graph-cli:

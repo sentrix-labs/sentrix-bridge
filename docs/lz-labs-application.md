@@ -62,7 +62,7 @@ Requesting EID assignment for both networks. Current placeholder (testnet) = `40
 
 ## Contact
 
-- Email: see `~/founder-private/WALLET_MAP.md` for operator contact (omitted from public draft).
+- Email: `(operator to fill before submit)`.
 - GitHub: `github.com/sentrix-labs`, `github.com/Sentriscloud`.
 - Discord / Telegram: `(operator to fill before submit)`.
 

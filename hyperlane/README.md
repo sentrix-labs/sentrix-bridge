@@ -31,7 +31,7 @@ LayerZero Labs application is a calendar block (2-6 weeks queue). Hyperlane has 
 3. Compile Mailbox + DefaultIsm (`solidity/contracts/isms/multisig/StaticMessageIdMultisigIsm.sol`) + Default Hook.
 4. Deploy Mailbox on Sentrix Testnet via `cast send --create` (same RPC compat pattern as LZ).
 5. Deploy MultisigIsm with single validator key (Sentrix-operated).
-6. Run Hyperlane validator agent — likely in docker container on vps4 or vps6.
+6. Run Hyperlane validator agent — likely in a docker container on operator infrastructure.
 7. Deploy Mailbox on Sepolia testnet (their pre-deployed Mailbox at `0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766`).
 8. Deploy reciprocal MultisigIsm on Sepolia configured to accept Sentrix-operated validator.
 9. End-to-end test: send message Sentrix Testnet → Sepolia, verify delivery.
