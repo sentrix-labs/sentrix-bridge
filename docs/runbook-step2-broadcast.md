@@ -9,7 +9,7 @@ Pick one of:
 ### Option A — Faucet wallet (already premined with 100M SRX-test)
 
 ```bash
-# Decrypt the faucet keystore (vps4)
+# Decrypt the faucet keystore (operator workstation)
 PK=$(sentrix wallet decrypt \
       --password "$(cat ~/sentrix/secrets/faucets/testnet/wallet.txt | grep PASSWORD | cut -d= -f2)" \
       ~/sentrix/secrets/faucets/testnet/keystore.json \

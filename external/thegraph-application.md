@@ -56,7 +56,7 @@ Discord is fastest for first contact; forum post follows for the formal request 
 >
 > - Active production chain — both mainnet and testnet operational since 2026-04.
 > - EVM-compatible; standard ABI + event semantics — no graph-node EVM patch needed.
-> - Sentrix Labs commits to running a public graph-node alongside The Graph hosted service (operator-side, on existing infrastructure at vps4 and vps6).
+> - Sentrix Labs commits to running a public graph-node alongside The Graph hosted service (operator-side, on existing infrastructure).
 > - Working live cross-chain bridge to Ethereum via Hyperlane (`sentrix-labs/sentrix-bridge`) demonstrates ecosystem maturity.
 >
 > #### What we need from The Graph
@@ -87,7 +87,7 @@ Before sending, verify:
 
 If The Graph hosted service onboarding stretches beyond 1-2 months:
 
-1. Deploy `graph-node` Rust binary on vps6 (or vps3) alongside existing infrastructure
+1. Deploy `graph-node` Rust binary on operator infrastructure alongside existing services
 2. Postgres backing store
 3. IPFS daemon (self-hosted)
 4. graph-cli deploys subgraphs to `https://stats.sentrixchain.com:8000/subgraphs/name/sentrix-labs/sentrix-dex` (or similar)

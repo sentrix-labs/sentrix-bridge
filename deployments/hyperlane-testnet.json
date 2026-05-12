@@ -44,7 +44,7 @@
       "Hyperlane has pre-deployed Mailbox on Sepolia at 0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766",
       "Deploy MultisigIsm on Sentrix Testnet that accepts Sentrix-operated validator signing checkpoints from Sepolia",
       "Deploy TestRecipient on Sepolia + configure ISM to accept Sentrix domain (7120)",
-      "Run Hyperlane validator agent (Rust binary) as systemd/docker on vps4 or vps6 — signs checkpoints for Sentrix Mailbox",
+      "Run Hyperlane validator agent (Rust binary) as systemd/docker on operator infrastructure — signs checkpoints for Sentrix Mailbox",
       "Run Hyperlane relayer agent — watches Sentrix + Sepolia, delivers inbound messages",
       "Send Sentrix → Sepolia test message + wait for delivery"
     ]
