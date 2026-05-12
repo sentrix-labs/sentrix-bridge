@@ -1,0 +1,60 @@
+{
+  "name": "wSRX warp route (Sentrix Testnet <-> Sepolia)",
+  "status": "DEPLOYED-BUT-NOT-FUNCTIONAL",
+  "deployedAt": "2026-05-12T03:30Z",
+  "sentrixTestnet": {
+    "chainId": 7120,
+    "HypNative": "0xea0bC1f6141E0B0604B9bE19E260338973Fd6dD7",
+    "PausableHook": "0x5058af72dD2235bcF934683126eab07849358F49",
+    "config": {
+      "mailbox": "0x9741D99270aF14D4baca0e387B6ac0500b9a288F",
+      "ism": "0x28834AA535F3130f0F60571Ac7a813195aE56eC6 (NoopIsm)",
+      "hook": "0x5058af72dD2235bcF934683126eab07849358F49 (PausableHook, value-accepting)",
+      "owner": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762",
+      "scaleNumerator": 1,
+      "scaleDenominator": 1
+    },
+    "enrolledRemote": {
+      "11155111": "0x000000000000000000000000c4bde56bcaadfdbd6fbad685b65628f05994e5a8"
+    }
+  },
+  "sepolia": {
+    "chainId": 11155111,
+    "HypERC20_wSRX": "0xC4BDE56bCAadfDbD6fBad685b65628f05994e5a8",
+    "config": {
+      "mailbox": "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766",
+      "ism": "0x1b11f19EbB371A88AF8be0B5B4a7bAa5b471246d (NoopIsm)",
+      "hook": "0x4917a9746A7B6E0A57159cCb7F5a6744247f2d0d (Hyperlane MerkleTreeHook, pre-deployed)",
+      "owner": "0x0067dAfBD0A914D9d4C1a210b408b78d5D272087",
+      "decimals": 18,
+      "name": "Wrapped SRX",
+      "symbol": "wSRX",
+      "initialSupply": 0
+    },
+    "enrolledRemote": {
+      "7120": "0x000000000000000000000000ea0bc1f6141e0b0604b9be19e260338973fd6dd7"
+    }
+  },
+  "knownIssue": {
+    "summary": "HypNative.transferRemote on Sentrix Testnet reverts at 27k gas on broadcast, while eth_estimateGas returns ~116k and eth_call returns a valid messageId.",
+    "evidence": [
+      "eth_estimateGas → 0x1c672 (116338) success",
+      "eth_call → 0x15ffd997a7356fd4911c7ea9e50e1392da493c6c39b9493c419a0e60ace5abce (messageId)",
+      "eth_sendRawTransaction (cast send --gas-limit 500000) → status=0 gasUsed=27337"
+    ],
+    "suspectedCause": "Sentrix EVM has a broadcast vs simulation state divergence — possibly related to revm 37 internal handling of `payable` + delegate-style internal calls (TokenRouter -> _transferRemote -> mailbox.dispatch).",
+    "workaround": "Bridge is functional at the Mailbox dispatch layer (proven via raw Mailbox.dispatch + manual relay in earlier commit). Token wrapper layer needs deeper debugging.",
+    "deferTo": "Step 4 — investigation will compare HypNative call trace against a working chain (e.g. local anvil fork) to isolate the Sentrix-specific behaviour."
+  },
+  "whatWorks": [
+    "Same-chain Hyperlane message round-trip on Sentrix Testnet (Mailbox.dispatch -> process -> TestRecipient.handle)",
+    "Cross-chain Sentrix Testnet -> Sepolia message delivery via Mailbox.dispatch + manual relay",
+    "HypNative + HypERC20 contracts deployed + initialized + cross-enrolled. Storage state correct.",
+    "PausableHook deployed and wired into HypNative — accepts value, no fee charged."
+  ],
+  "whatBlocksUsers": [
+    "transferRemote() reverts on broadcast → users can't actually lock SRX or mint wSRX",
+    "Manual workaround via direct Mailbox.dispatch with hand-encoded message body would work but is not user-friendly",
+    "No automated validator + relayer agents (current relay is manual via cast send)"
+  ]
+}
