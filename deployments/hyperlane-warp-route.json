@@ -36,15 +36,38 @@
     }
   },
   "knownIssue": {
-    "summary": "HypNative.transferRemote on Sentrix Testnet reverts at 27k gas on broadcast, while eth_estimateGas returns ~116k and eth_call returns a valid messageId.",
+    "summary": "HypNative.transferRemote on Sentrix Testnet reverts at 27k gas on broadcast ONLY when msg.value > 0. Calls with msg.value=0 succeed cleanly. eth_call and eth_estimateGas both succeed for the value-bearing case (state-dependent broadcast vs simulation divergence).",
     "evidence": [
-      "eth_estimateGas → 0x1c672 (116338) success",
-      "eth_call → 0x15ffd997a7356fd4911c7ea9e50e1392da493c6c39b9493c419a0e60ace5abce (messageId)",
-      "eth_sendRawTransaction (cast send --gas-limit 500000) → status=0 gasUsed=27337"
+      "transferRemote(amount=1e15, value=1e15) → status=0 gasUsed=27337 (block 3393077)",
+      "transferRemote(amount=0, value=0)   → status=1 gasUsed=86266 (block confirmed, 4 logs incl. Dispatch)",
+      "eth_call (value=1e15) → 0x15ffd997... messageId (succeeds)",
+      "eth_estimateGas (value=1e15) → 0x1c672 (116338) success",
+      "eth_sendRawTransaction (value=1e15) → reverts at 27k gas, no logs"
     ],
-    "suspectedCause": "Sentrix EVM has a broadcast vs simulation state divergence — possibly related to revm 37 internal handling of `payable` + delegate-style internal calls (TokenRouter -> _transferRemote -> mailbox.dispatch).",
-    "workaround": "Bridge is functional at the Mailbox dispatch layer (proven via raw Mailbox.dispatch + manual relay in earlier commit). Token wrapper layer needs deeper debugging.",
-    "deferTo": "Step 4 — investigation will compare HypNative call trace against a working chain (e.g. local anvil fork) to isolate the Sentrix-specific behaviour."
+    "isolatedTo": "Sentrix EVM (revm 37) value-bearing transaction execution for payable functions with internal-call chains. Same call succeeds when msg.value=0.",
+    "reproducer": "Deploy any Hyperlane HypNative + call transferRemote with msg.value > 0. Reverts at ~27k gas. Same call with msg.value=0 succeeds.",
+    "filedAs": "TODO: open issue at sentrix-labs/sentrix repo titled 'EVM: payable internal-call chain reverts at 27k gas when msg.value > 0, while eth_call succeeds (Hyperlane HypNative.transferRemote repro)'",
+    "workarounds": [
+      "Skip HypNative entirely — deploy HypERC20Collateral on Sentrix wrapping the existing canonical-contracts WSRX (Wrapped SRX) ERC20. Users wrap SRX → wSRX via WSRX9 first, then approve+transferRemote on the ERC20 path (no msg.value needed).",
+      "Workaround proves bridge concept tonight while the EVM bug is fixed in parallel.",
+      "Once the EVM bug is patched in sentrix-labs/sentrix, the native HypNative path becomes available without WSRX wrapping."
+    ]
+  },
+  "pathProofs": {
+    "sameChainDispatch": {
+      "tx": "0x104f94b5854bd43b1624a03a9f37c204a71035587ed2e7d51eb1f095a0a89bfc",
+      "verification": "Mailbox.dispatch -> process -> TestRecipient.handle on Sentrix Testnet, body 'Sentrix Hyperlane self-msg #2 (fixed)' delivered"
+    },
+    "crossChainDispatch": {
+      "sentrixTx": "0x44d8ef015e625b9598e13b89a079d4c44b3338146e0887da5e10b002fd49bcfd",
+      "sepoliaTx": "0x16e036e5e4c331a0105c58b711425d31a03a0384e8237f6fdafa7c0cca495ff2",
+      "verification": "Plain Mailbox.dispatch on Sentrix Testnet -> manual Mailbox.process on Sepolia -> Sepolia TestRecipient.lastData() = HELLO SEPOLIA FROM SENTRIX TESTNET via Hyperlane"
+    },
+    "warpRouteDispatch_amount0": {
+      "sentrixTx": "0xa0afbb16883e81de25e4ac0a8a5af78b31d46c540b93f588a908af3d33945f1d",
+      "sepoliaTx": "0xbc721cb5f3cf71e7e87f642c0213beebbe513c50446e1fae77d22e6c821ddd1c",
+      "verification": "HypNative.transferRemote(amount=0, value=0) -> Sepolia HypERC20.handle() -> 0 wSRX minted (amount=0 by design). Proves the full warp-route message format + handler integration works end-to-end. Only value-bearing case is blocked."
+    }
   },
   "whatWorks": [
     "Same-chain Hyperlane message round-trip on Sentrix Testnet (Mailbox.dispatch -> process -> TestRecipient.handle)",
