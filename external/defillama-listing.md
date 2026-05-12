@@ -37,10 +37,8 @@ async function tvl(api) {
     api,
     target: FACTORY,
     topics: [PAIR_CREATED_TOPIC],
-    // TODO: pin actual factory deploy block — query via
-    //   cast receipt 0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf --rpc-url https://rpc.sentrixchain.com | grep blockNumber
-    // Until pinned, walks from block 1 which is wasteful on TVL refresh.
-    fromBlock: 1,
+    // Factory deployed at block 1131006 (resolved on-chain 2026-05-12).
+    fromBlock: 1131006,
     onlyArgs: true,
     eventAbi: "event PairCreated(address indexed token0, address indexed token1, address pair, uint256)",
   });

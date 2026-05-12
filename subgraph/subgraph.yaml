@@ -21,10 +21,10 @@ dataSources:
       # For testnet (7120), switch to 0x8565392086cbA8D39cBba1F6f60ad1F1A17651C7 + change network alias to sentrix-testnet.
       address: "0xC5344f0DDE0B9916217449Ad9222e446475aD936"
       abi: SentrixDexFactory
-      # TODO: pin Factory deploy block. The factory tx is
-      # 0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf — operator
-      # can query its block height via cast or scan.sentrixchain.com and replace below.
-      startBlock: 1
+      # Factory deploy block: 1131006 (resolved 2026-05-12 from
+      # eth_getTransactionReceipt 0x03868af8e4c1db22d5968f4b15d6e5c41c342190406dd40bc226879e19280dbf
+      # blockNumber=0x1141fe). startBlock matches first PairCreated event window.
+      startBlock: 1131006
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
