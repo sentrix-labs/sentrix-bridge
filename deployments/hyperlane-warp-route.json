@@ -1,6 +1,29 @@
 {
   "name": "wSRX warp route (Sentrix Testnet <-> Sepolia)",
-  "status": "DEPLOYED-BUT-NOT-FUNCTIONAL",
+  "status": "FUNCTIONAL via WSRX-wrap workaround — value bridged user-to-user end-to-end",
+  "workingPath": {
+    "summary": "SRX (native) -> WSRX wrap -> HypERC20Collateral.transferRemote -> Sepolia HypERC20.handle -> wSRX minted to recipient",
+    "components": {
+      "WSRX_sentrix": "0x85d5E7694AF31C2Edd0a7e66b7c6c92C59fF949A",
+      "HypERC20Collateral_sentrix": "0xfb8190927034c447Fc29B1cfbF4f4F000969bb32",
+      "HypERC20_wSRX_sepolia": "0xC4BDE56bCAadfDbD6fBad685b65628f05994e5a8"
+    },
+    "demoTransfer": {
+      "amount": "1000000000000000 wei (0.001 SRX)",
+      "wrapTx_sentrix": "WSRX.deposit{value:1e15}() succeeded, owner now holds wSRX",
+      "approveTx_sentrix": "WSRX.approve(collateral, 1e15) succeeded",
+      "bridgeTx_sentrix": "0x4e2582c2704160dc4770fe24f9ab677ddce121ea36856507aa20108adebf9f63 (status=1, gasUsed=145282)",
+      "mintTx_sepolia": "0x0c1af7f4cbe247006be72b35e60199810d227654f2498221c33f1661f166d56f (status=1)",
+      "verifiedBalance": "Sepolia HypERC20.balanceOf(recipient) = 1000000000000000 wei = 0.001 wSRX"
+    },
+    "userInstructions": [
+      "1. wrap SRX -> wSRX via WSRX9.deposit{value:amount}()",
+      "2. approve HypERC20Collateral to spend wSRX",
+      "3. call HypERC20Collateral.transferRemote(destDomain, recipientBytes32, amount) — no msg.value",
+      "4. relayer (or manual call) Mailbox.process(metadata=0x, message) on destination chain",
+      "5. recipient receives wSRX minted on destination"
+    ]
+  },
   "deployedAt": "2026-05-12T03:30Z",
   "sentrixTestnet": {
     "chainId": 7120,
