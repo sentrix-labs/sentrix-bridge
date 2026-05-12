@@ -1,0 +1,79 @@
+specVersion: 0.0.4
+description: >
+  Sentrix subgraph — indexes sentrix-dex (V2 fork) pair events on
+  Sentrix Chain (chainId 7119). Phase 1 scope: PairCreated + Swap +
+  Mint + Burn + Sync. Phase 2 (CoinBlast launchpad) and Phase 3
+  (staking events) will be added as separate data sources in
+  follow-up versions.
+
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  - kind: ethereum/contract
+    name: SentrixDexFactory
+    # Sentrix Chain Mainnet (chainId 7119). graph-node config maps
+    # the network alias 'sentrix' to https://rpc.sentrixchain.com.
+    network: sentrix
+    source:
+      # TODO: confirm sentrix-dex V2 Factory address from sentrix-labs/sentrix-dex repo
+      # before submitting subgraph. Placeholder kept as 0x0 so the schema/manifest
+      # validates but no events are indexed until the real address is pinned.
+      address: "0x0000000000000000000000000000000000000000"
+      abi: SentrixDexFactory
+      # TODO: confirm Factory deploy block. Until pinned, indexes from block 1
+      # which is wasteful — should be the factory's createPair tx block.
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/factory.ts
+      entities:
+        - Pair
+        - Token
+        - SentrixDexFactory
+      abis:
+        - name: SentrixDexFactory
+          file: ./abis/SentrixDexFactory.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: SentrixDexPair
+          file: ./abis/SentrixDexPair.json
+      eventHandlers:
+        - event: PairCreated(indexed address,indexed address,address,uint256)
+          handler: handlePairCreated
+
+templates:
+  - kind: ethereum/contract
+    name: SentrixDexPair
+    network: sentrix
+    source:
+      abi: SentrixDexPair
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/pair.ts
+      entities:
+        - Pair
+        - Token
+        - Swap
+        - Mint
+        - Burn
+        - PairDayData
+        - SentrixDayData
+      abis:
+        - name: SentrixDexPair
+          file: ./abis/SentrixDexPair.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Sync(uint112,uint112)
+          handler: handleSync
+        - event: Swap(indexed address,uint256,uint256,uint256,uint256,indexed address)
+          handler: handleSwap
+        - event: Mint(indexed address,uint256,uint256)
+          handler: handleMint
+        - event: Burn(indexed address,uint256,uint256,indexed address)
+          handler: handleBurn

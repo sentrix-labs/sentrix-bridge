@@ -1,0 +1,177 @@
+"""
+Sentrix subgraph schema — Phase 1: sentrix-dex (V2 pairs) indexing.
+
+Modeled after Uniswap V2's official subgraph schema, adapted for Sentrix
+chain. All BigInt and BigDecimal types map to AssemblyScript handlers in
+src/*.ts; addresses are stored as Bytes (20-byte) for efficient indexing.
+
+TODO before deploy:
+- confirm sentrix-dex V2 Factory address (mainnet 7119) and pin it in subgraph.yaml
+- confirm Factory deploy block for startBlock
+"""
+
+# ─── Tokens ──────────────────────────────────────────────────────────
+
+type Token @entity {
+  "The token contract address, lowercased hex"
+  id: ID!
+
+  "ERC20.symbol() at deploy time. May change post-deploy but we snapshot once."
+  symbol: String!
+
+  "ERC20.name()"
+  name: String!
+
+  "ERC20.decimals()"
+  decimals: BigInt!
+
+  "Total supply at last update"
+  totalSupply: BigInt!
+
+  "Total liquidity provided in this token across all pairs, in token-native units"
+  totalLiquidity: BigDecimal!
+
+  "Cumulative trade volume in this token, native units"
+  tradeVolume: BigDecimal!
+
+  "Number of transactions that touched this token"
+  txCount: BigInt!
+}
+
+# ─── Pairs ───────────────────────────────────────────────────────────
+
+type Pair @entity {
+  "Pair contract address, lowercased hex"
+  id: ID!
+
+  "Token0 = lower address (UniV2 sort invariant)"
+  token0: Token!
+
+  "Token1 = higher address"
+  token1: Token!
+
+  reserve0: BigDecimal!
+  reserve1: BigDecimal!
+  totalSupply: BigDecimal!
+
+  "Cumulative volume of token0 traded through this pair"
+  volumeToken0: BigDecimal!
+  volumeToken1: BigDecimal!
+
+  "Number of transactions on this pair"
+  txCount: BigInt!
+
+  "Pair creation timestamp + block"
+  createdAtTimestamp: BigInt!
+  createdAtBlock: BigInt!
+
+  swaps: [Swap!]! @derivedFrom(field: "pair")
+  mints: [Mint!]! @derivedFrom(field: "pair")
+  burns: [Burn!]! @derivedFrom(field: "pair")
+}
+
+# ─── Swap / Mint / Burn ──────────────────────────────────────────────
+
+type Swap @entity {
+  "txHash-logIndex"
+  id: ID!
+
+  "Pair this swap occurred on"
+  pair: Pair!
+
+  "Caller (usually router; sender of the Swap event)"
+  sender: Bytes!
+
+  "Beneficiary of the output amount"
+  to: Bytes!
+
+  amount0In: BigDecimal!
+  amount1In: BigDecimal!
+  amount0Out: BigDecimal!
+  amount1Out: BigDecimal!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transaction: Bytes!
+  logIndex: BigInt!
+}
+
+type Mint @entity {
+  id: ID!
+  pair: Pair!
+
+  "LP recipient (typically router caller)"
+  sender: Bytes!
+  to: Bytes!
+
+  amount0: BigDecimal!
+  amount1: BigDecimal!
+  liquidity: BigDecimal!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transaction: Bytes!
+  logIndex: BigInt!
+}
+
+type Burn @entity {
+  id: ID!
+  pair: Pair!
+
+  sender: Bytes!
+  to: Bytes!
+
+  amount0: BigDecimal!
+  amount1: BigDecimal!
+  liquidity: BigDecimal!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transaction: Bytes!
+  logIndex: BigInt!
+}
+
+# ─── Daily / overall aggregations ────────────────────────────────────
+
+"""
+SentrixDayData — daily chain-wide DEX stats. Useful for /stats pages
+and for DefiLlama integration (TVL chart data source).
+"""
+type SentrixDayData @entity {
+  "Day timestamp (start of UTC day) as id"
+  id: ID!
+  date: Int!
+
+  dailyVolumeSRX: BigDecimal!
+  totalLiquiditySRX: BigDecimal!
+
+  txCount: BigInt!
+}
+
+type PairDayData @entity {
+  "{pairAddress}-{date}"
+  id: ID!
+  date: Int!
+
+  pair: Pair!
+
+  reserve0: BigDecimal!
+  reserve1: BigDecimal!
+  totalSupply: BigDecimal!
+
+  dailyVolumeToken0: BigDecimal!
+  dailyVolumeToken1: BigDecimal!
+
+  dailyTxns: BigInt!
+}
+
+# ─── Factory-level snapshot ──────────────────────────────────────────
+
+type SentrixDexFactory @entity {
+  id: ID!
+
+  pairCount: Int!
+  totalVolumeSRX: BigDecimal!
+  totalLiquiditySRX: BigDecimal!
+  txCount: BigInt!
+}
