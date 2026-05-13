@@ -11,14 +11,26 @@ Cross-chain bridge integration for Sentrix Chain. Two bridge protocols live in p
 
 ### Hyperlane v3 — Sentrix Testnet (7120) → Sepolia (11155111)
 
-End-to-end message delivery verified on `2026-05-12` (commit `531ff64`). A `MessageDispatched` event on Sentrix Testnet's Mailbox landed at Sepolia's TestRecipient as `Handled("HELLO SEPOLIA FROM SENTRIX TESTNET via Hyperlane", originDomain=7120)` after a manual relay (`process(...)`) from our deployer wallet.
+Two flows verified on-chain:
+
+**1. Message delivery (Hello-World demo, 2026-05-12 commit `531ff64`).** A `MessageDispatched` event on Sentrix Testnet's Mailbox landed at Sepolia's TestRecipient as `Handled("HELLO SEPOLIA FROM SENTRIX TESTNET via Hyperlane", originDomain=7120)` after a manual relay (`process(...)`) from our deployer wallet.
 
 | Side | Mailbox | Our deployments |
 |---|---|---|
 | Sentrix Testnet | `0x9741D99270aF14D4baca0e387B6ac0500b9a288F` | NoopIsm `0x28834A...e56eC6` · MerkleTreeHook `0x6A192C...0F1467` · TestRecipient `0x1feBBD...CfF4c4` |
 | Sepolia | `0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766` (pre-deployed by Hyperlane Labs) | NoopIsm `0x1b11f1...246d` · TestRecipient `0x843fA9...258` |
 
-Full deployment metadata in `deployments/hyperlane-{testnet,sepolia}.json`.
+**2. Token value transfer (wSRX warp route).** `0.001 SRX` wrapped → bridged → minted as `0.001 wSRX` on Sepolia (`HypERC20.balanceOf(recipient) == 1e15` post-relay). Bridge tx `0x4e2582…f9f63` Sentrix-side, mint tx `0x0c1af7…66d56f` Sepolia-side, both `status=1`.
+
+| Component | Address | Side |
+|---|---|---|
+| `WSRX9` (wrap contract) | `0x85d5E7694AF31C2Edd0a7e66b7c6c92C59fF949A` | Sentrix Testnet |
+| `HypERC20Collateral` | `0xfb8190927034c447Fc29B1cfbF4f4F000969bb32` | Sentrix Testnet |
+| `HypERC20` (wSRX mint) | `0xC4BDE56bCAadfDbD6fBad685b65628f05994e5a8` | Sepolia |
+
+> **Honest limitation on flow #2:** the demo worked because the deployer already held wSRX. Fresh users have to call `WSRX9.deposit{value: amount}()` to wrap SRX → wSRX, and that step is currently blocked by the upstream chain bug [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580) (EVM payable internal-call gate zeros `msg.value` on broadcast). Bridging works end-to-end *if* you already hold wSRX; user onboarding does not until #580 closes. Detail + tx evidence in `deployments/hyperlane-warp-route.json`.
+
+Full deployment metadata in `deployments/hyperlane-{testnet,sepolia,warp-route}.json`.
 
 ### LayerZero V2 — Sentrix Testnet endpoint stack
 
@@ -127,7 +139,7 @@ Both `Dispatch` (Sentrix side) and `Handle` (Sepolia side) emit on the canonical
 
 | Path | License |
 |---|---|
-| Deploy scripts, runbooks, configs, subgraph | BUSL-1.1 (matches the chain repo) |
-| Vendored `LayerZero-v2/` | LZBL-1.2 (LayerZero Business License — converts to GPL v2 on Dec 14, 2027) |
-| Vendored `lib/openzeppelin-contracts-v4/` | MIT (OpenZeppelin) |
-| Vendored `lib/forge-std/` | MIT (Foundry) |
+| Deploy scripts, runbooks, configs, subgraph (this repo) | BUSL-1.1 (matches the chain repo) |
+| `LayerZero-v2/` (clone-instruction in Setup; gitignored — NOT redistributed here) | LZBL-1.2 upstream (LayerZero Business License — converts to GPL v2 on Dec 14, 2027) |
+| `lib/openzeppelin-contracts-v4/` (clone-instruction in Setup; gitignored) | MIT upstream (OpenZeppelin) |
+| `lib/forge-std/` (clone-instruction in Setup; gitignored) | MIT upstream (Foundry) |
