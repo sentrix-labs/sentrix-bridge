@@ -104,7 +104,7 @@ $ curl -s -X POST https://testnet-rpc.sentrixchain.com -H "Content-Type: applica
 # 0x1bd0  (decimal 7120) ✓
 ```
 
-EIP-3091 (block explorer URL scheme) confirmed compliant for `scan.sentrixchain.com` since 2026-04-30 (CLAUDE.md banner).
+EIP-3091 (block explorer URL scheme) confirmed compliant for `scan.sentrixchain.com` since 2026-04-30 per the chain operator's status notes.
 
 ## Submission steps
 

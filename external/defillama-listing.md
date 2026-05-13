@@ -86,9 +86,9 @@ sentrix: {
 | Field | Value | Verified by |
 |---|---|---|
 | Chain ID (mainnet) | 7119 | `eth_chainId` returns `0x1bcf` |
-| Native token symbol | SRX | `web3_clientVersion` = "Sentrix/2.2.2/Rust"; tokenomics in BIBLE.md |
+| Native token symbol | SRX | `web3_clientVersion` = "Sentrix/2.2.2/Rust"; tokenomics documented in operator runbooks |
 | Decimals | 18 | EVM standard, confirmed in genesis config |
-| Block explorer | https://scan.sentrixchain.com | EIP-3091 compliant since 2026-04-30 (CLAUDE.md) |
+| Block explorer | https://scan.sentrixchain.com | EIP-3091 compliant since 2026-04-30 |
 | Public RPC | https://rpc.sentrixchain.com | Confirmed responding (smoke-chain.sh 28/28 green) |
 | GitHub org | https://github.com/sentrix-labs | Public, with sentrix repo (chain) + canonical-contracts + sentrix-bridge |
 | Whitepaper | v1.2.4 final | At sentrix-labs/whitepaper@b243db8 |
