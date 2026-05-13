@@ -28,7 +28,7 @@ Two flows verified on-chain:
 | `HypERC20Collateral` | `0xfb8190927034c447Fc29B1cfbF4f4F000969bb32` | Sentrix Testnet |
 | `HypERC20` (wSRX mint) | `0xC4BDE56bCAadfDbD6fBad685b65628f05994e5a8` | Sepolia |
 
-> **Honest limitation on flow #2:** the demo worked because the deployer already held wSRX. Fresh users have to call `WSRX9.deposit{value: amount}()` to wrap SRX → wSRX, and that step is currently blocked by the upstream chain bug [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580) (EVM payable internal-call gate zeros `msg.value` on broadcast). Bridging works end-to-end *if* you already hold wSRX; user onboarding does not until #580 closes. Detail + tx evidence in `deployments/hyperlane-warp-route.json`.
+> **Update 2026-05-13:** [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580) closed. EVM value-transfer + gas-fix forks activated on testnet h=3,787,000 and mainnet h=1,748,900 (binary v2.2.11). `WSRX9.deposit{value: amount}()` verified working end-to-end on both nets. Fresh users can now wrap SRX → wSRX without the workaround. Bridging is fully user-entry capable on testnet.
 
 Full deployment metadata in `deployments/hyperlane-{testnet,sepolia,warp-route}.json`.
 
@@ -55,7 +55,7 @@ Per-destination bridge status is tracked in [`docs/multichain-roadmap.md`](docs/
 | Arbitrum Sepolia | — | — | Planned (Phase 1) |
 | Optimism Sepolia | — | — | Planned (Phase 1) |
 
-Mainnet expansion is **gated on** (a) production MultisigIsm + agent infrastructure, (b) resolution of [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580) (the EVM value-passing bug that breaks the user-entry path), and (c) an external audit pass.
+Mainnet expansion is **gated on** (a) production MultisigIsm + agent infrastructure and (b) an external audit pass. The EVM value-passing bug ([sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580)) closed 2026-05-13 — gates activated on both nets and verified.
 
 ## Setup
 
