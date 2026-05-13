@@ -27,7 +27,11 @@ jobs:
           # Block merge on these severities; show all in comment.
           fail-on-severity: high
           # License allowlist mirrors the chain repo (sentrix-labs/sentrix).
-          allow-licenses: MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-DFS-2016, Unicode-3.0, CC0-1.0, 0BSD, MPL-2.0, Zlib, NCSA, BUSL-1.1, LZBL-1.2
+          # NOTE: LZBL-1.2 (LayerZero source) isn't SPDX-recognized so the
+          # action rejects it as an allowlist entry. LayerZero contracts ship
+          # as git submodules / forge libs and don't surface in the GitHub
+          # Dependency Graph anyway, so omitting it is not a coverage gap.
+          allow-licenses: MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-DFS-2016, Unicode-3.0, CC0-1.0, 0BSD, MPL-2.0, Zlib, NCSA, BUSL-1.1
           # Build-time GitHub Actions whose copyleft licenses don't
           # propagate to the bridge artifacts.
           allow-dependencies-licenses: pkg:githubactions/Swatinem/rust-cache
