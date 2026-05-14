@@ -23,8 +23,9 @@ import {ReceiveUln302} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/u
 ///             --broadcast \
 ///             --legacy
 contract DeployLZSentrixTestnet is Script {
-    // Placeholder EID for Sentrix Testnet. Coordinate with LayerZero Labs to claim
-    // an official EID before any cross-chain wiring.
+    // Placeholder EID for Sentrix Testnet. eid=40998 is a placeholder pending
+    // LZ Labs assignment. Do NOT advertise this EID externally; once a real EID
+    // is assigned, redeploy under that EID (constructor-immutable in EndpointV2).
     uint32 constant SENTRIX_TESTNET_EID = 40998;
 
     // SendUln302 gas accounting params — values mirror LZ's documented defaults
@@ -34,14 +35,27 @@ contract DeployLZSentrixTestnet is Script {
     uint256 constant TREASURY_GAS_FOR_FEE_CAP = 1_000_000_000;
 
     function run() external {
+        // Chain-id guard: testnet (7120) only by default; mainnet (7119) blocked
+        // unless explicit ALLOW_MAINNET_DEPLOY=1 opt-in is set.
+        require(block.chainid == 7120, "Testnet (7120) only");
+        require(
+            block.chainid != 7119 || vm.envOr("ALLOW_MAINNET_DEPLOY", false),
+            "Mainnet deploy requires explicit ALLOW_MAINNET_DEPLOY=1"
+        );
+
         address deployer = vm.addr(vm.envUint("DEPLOYER_PK"));
         console2.log("Deployer:", deployer);
         console2.log("Chain ID:", block.chainid);
-        require(block.chainid == 7120, "DeployLZSentrixTestnet: expected chain 7120 (Sentrix Testnet)");
+
+        // SentrixSafe (1-of-1 multisig) takes EndpointV2 ownership at the end of
+        // this script. Required so the deployer hot key isn't permanent owner.
+        address sentrixSafe = vm.envAddress("SENTRIX_SAFE");
+        require(sentrixSafe != address(0), "SENTRIX_SAFE env required");
 
         vm.startBroadcast(vm.envUint("DEPLOYER_PK"));
 
-        // 1. EndpointV2 — owner = deployer, can transfer later to SentrixSafe.
+        // 1. EndpointV2 — owner = deployer for the registerLibrary calls below;
+        //    transferred to SentrixSafe at the end of this broadcast.
         EndpointV2 endpoint = new EndpointV2(SENTRIX_TESTNET_EID, deployer);
         console2.log("EndpointV2 deployed:", address(endpoint));
 
@@ -63,6 +77,10 @@ contract DeployLZSentrixTestnet is Script {
         endpoint.registerLibrary(address(receiveLib));
         console2.log("Libraries registered in EndpointV2");
 
+        // 5. Transfer endpoint ownership off the deployer hot key.
+        endpoint.transferOwnership(sentrixSafe);
+        console2.log("EndpointV2 ownership transferred to SentrixSafe:", sentrixSafe);
+
         vm.stopBroadcast();
 
         console2.log("");
@@ -71,6 +89,7 @@ contract DeployLZSentrixTestnet is Script {
         console2.log("  EndpointV2:   ", address(endpoint));
         console2.log("  SendUln302:   ", address(sendLib));
         console2.log("  ReceiveUln302:", address(receiveLib));
+        console2.log("  Owner:        ", sentrixSafe);
         console2.log("");
         console2.log("Next: PriceFeed (upgradeable), Executor, Treasury, then DVN wiring.");
         console2.log("Then submit chain integration request to LayerZero Labs with these addresses.");

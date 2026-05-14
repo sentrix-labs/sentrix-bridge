@@ -97,19 +97,23 @@ Deploys `EndpointV2(eid=40998, owner=deployer)`, `SendUln302`, `ReceiveUln302`, 
 
 ### Hyperlane testnet round-trip
 
-```bash
-# 1. Sentrix Testnet stack
-forge script hyperlane/scripts/DeployHyperlaneSentrixTestnet.s.sol --rpc-url sentrix_testnet --broadcast --legacy
+> **Note on deploy scripts.** The Hyperlane testnet stack was bootstrapped via
+> `cast send --create` per [`docs/runbook-step2-broadcast.md`](docs/runbook-step2-broadcast.md)
+> (forge script forking trips on Sentrix's strict-decode RPC quirk). The
+> `hyperlane/scripts/` directory is currently empty — proper foundry scripts are
+> pending; until then, use the cast-send runbook patterns below. Deployed
+> addresses (mailbox, ISM, hooks, warp-route contracts) are recorded in
+> `deployments/hyperlane-{testnet,sepolia,warp-route}.json`.
 
-# 2. Sepolia stack
-forge script hyperlane/scripts/DeployHyperlaneSepolia.s.sol --rpc-url sepolia --broadcast
+Round-trip steps once the contracts are deployed:
 
-# 3. Dispatch from Sentrix → Sepolia
-forge script hyperlane/scripts/DispatchToSepolia.s.sol --rpc-url sentrix_testnet --broadcast --legacy
-
-# 4. Manual relay on Sepolia
-forge script hyperlane/scripts/ProcessOnSepolia.s.sol --rpc-url sepolia --broadcast
-```
+1. **Dispatch** — call `Mailbox.dispatch(destDomain, recipient, body)` on the
+   Sentrix Testnet mailbox `0x9741D99270aF14D4baca0e387B6ac0500b9a288F`.
+2. **Manual relay** (Phase 0, no validator set yet) — call
+   `Mailbox.process(metadata, message)` on the Sepolia mailbox
+   `0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766` from the deployer wallet.
+3. Production swap to validator-relayed delivery is gated on the MultisigIsm
+   setup tracked in [`docs/multisigism-setup.md`](docs/multisigism-setup.md).
 
 Both `Dispatch` (Sentrix side) and `Handle` (Sepolia side) emit on the canonical Mailbox contracts and are observable via tx hash + explorer URL in `deployments/hyperlane-warp-route.json`.
 

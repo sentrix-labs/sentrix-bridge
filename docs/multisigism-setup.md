@@ -117,15 +117,58 @@ gasPaymentEnforcement:
 
 The relayer is permissionless in principle — anyone can run one — but typically the bridge operator runs the canonical one.
 
-### 5. Swap TestRecipient ISM pointer
+### 5. Swap ISM pointer on TestRecipient AND warp-route contracts
 
-Once the agent network is healthy + signatures landing in the store, point the test recipients at the new MultisigIsm:
+Once the agent network is healthy + signatures landing in the store, point
+**every** consumer at the new MultisigIsm. The original Phase 0 runbook only
+covered the TestRecipient demo contracts — the warp-route contracts
+(`HypERC20Collateral` on Sentrix Testnet + `HypERC20` wSRX on Sepolia) also
+default to NoopIsm and MUST be flipped before any value crosses, otherwise
+anyone can mint wSRX on Sepolia without locking SRX on Sentrix once TVL > 0.
 
 ```bash
-cast send <TestRecipient> "setInterchainSecurityModule(address)" <MultisigIsm> \
+# === Sepolia side ===
+# 5a. TestRecipient (demo only)
+cast send 0x843fA9...258 "setInterchainSecurityModule(address)" <MultisigIsm-Sepolia> \
   --rpc-url sepolia --private-key $DEPLOYER_PK
-# repeat on Sentrix Testnet side
+
+# 5b. HypERC20 wSRX mint contract (PRODUCTION — value bridge)
+cast send 0xC4BDE56bCAadfDbD6fBad685b65628f05994e5a8 \
+  "setInterchainSecurityModule(address)" <MultisigIsm-Sepolia> \
+  --rpc-url sepolia --private-key $DEPLOYER_PK
+
+# === Sentrix Testnet side ===
+# 5c. TestRecipient (demo only)
+cast send 0x1feBBD...CfF4c4 "setInterchainSecurityModule(address)" <MultisigIsm-SentrixTestnet> \
+  --rpc-url sentrix_testnet --private-key $DEPLOYER_PK --legacy
+
+# 5d. HypERC20Collateral SRX-lock contract (PRODUCTION — value bridge)
+cast send 0xfb8190927034c447Fc29B1cfbF4f4F000969bb32 \
+  "setInterchainSecurityModule(address)" <MultisigIsm-SentrixTestnet> \
+  --rpc-url sentrix_testnet --private-key $DEPLOYER_PK --legacy
 ```
+
+Verify each swap landed (must echo back the new MultisigIsm address, NOT
+`0x000…000` and NOT the old NoopIsm address):
+
+```bash
+# Sepolia warp-route ISM
+cast call 0xC4BDE56bCAadfDbD6fBad685b65628f05994e5a8 \
+  "interchainSecurityModule()(address)" --rpc-url sepolia
+# expect: <MultisigIsm-Sepolia>
+
+# Sentrix Testnet warp-route ISM
+cast call 0xfb8190927034c447Fc29B1cfbF4f4F000969bb32 \
+  "interchainSecurityModule()(address)" --rpc-url sentrix_testnet
+# expect: <MultisigIsm-SentrixTestnet>
+
+# Same for both TestRecipients (sanity check the demo path too)
+cast call 0x843fA9...258 "interchainSecurityModule()(address)" --rpc-url sepolia
+cast call 0x1feBBD...CfF4c4 "interchainSecurityModule()(address)" --rpc-url sentrix_testnet
+```
+
+If any of the four still returns the NoopIsm address, the swap was missed —
+re-run the corresponding `cast send` before any user-facing announcement.
 
 ### 6. Re-verify cross-chain message
 

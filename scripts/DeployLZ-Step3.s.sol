@@ -18,7 +18,16 @@ import {PriceFeed} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/PriceFeed
 ///         deployment one-liner has bytecode + ABI available, and (b) document
 ///         the constructor + initializer signatures for future reference.
 contract DeployLZStep3 is Script {
-    function run() external pure {
+    function run() external view {
+        // Chain-id guard: testnet (7120) only by default; mainnet (7119) blocked
+        // unless explicit ALLOW_MAINNET_DEPLOY=1 opt-in is set. Kept even though
+        // the script body is a revert — future broadcast logic added here should
+        // inherit the same gate without retrofitting.
+        require(block.chainid == 7120, "Testnet (7120) only");
+        require(
+            block.chainid != 7119 || vm.envOr("ALLOW_MAINNET_DEPLOY", false),
+            "Mainnet deploy requires explicit ALLOW_MAINNET_DEPLOY=1"
+        );
         revert("Use cast send --create per docs/runbook-step3-broadcast.md");
     }
 }
