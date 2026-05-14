@@ -81,7 +81,7 @@ review), the custom ERC20 path is wrong. We use Circle's contracts unmodified.
 - Initialize with 1-of-1 SentrixSafe as `owner`, `masterMinter`, `pauser`,
   `blacklister`, `rescuer`. Proxy `admin` can be the same EOA OR (best
   practice) a separate operator-held EOA for role-family separation. Single-sig
-  bootstrap policy applies — see `SINGLE_SIG_BOOTSTRAP_POLICY.md`. Multisig is
+  bootstrap policy applies — see `BOOTSTRAP_ROLE_HOLDER.md`. Multisig is
   a Phase 3+ graduation milestone, not a Phase 1 launch requirement.
 - Deploy `SentrixUSDCSourceBridge` (this repo, `src/circle-bridged/source/`,
   scaffold complete) on Sepolia behind ERC1967Proxy.

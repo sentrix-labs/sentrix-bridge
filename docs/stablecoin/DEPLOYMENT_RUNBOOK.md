@@ -15,7 +15,7 @@
 ### Operator key setup (one-time, before any deployment)
 
 Phase 1 / Phase 2 runs on single-sig operator EOAs per
-`SINGLE_SIG_BOOTSTRAP_POLICY.md`. Multisig is a Phase 3b graduation
+`BOOTSTRAP_ROLE_HOLDER.md`. Multisig is a Phase 3b graduation
 milestone, not a Phase 1 launch requirement.
 
 Provision:
@@ -34,7 +34,7 @@ Key custody:
 - Per earned-rule `feedback_no_wallet_txt_in_chat`: NEVER paste private
   keys or mnemonics into chat / scrollback / logs.
 
-Multisig migration plan (later, see `SINGLE_SIG_BOOTSTRAP_POLICY.md`):
+Multisig migration plan (later, see `BOOTSTRAP_ROLE_HOLDER.md`):
 threshold 2-of-3 when first co-signer recruited, 4-of-7 by Phase 3c.
 
 ## Step 1 — Clone Circle's `stablecoin-evm` (NOT a submodule of this repo)
@@ -97,7 +97,7 @@ Save the implementation address. Will be used in Step 4.
 
 ```bash
 # Roles for initialization. Phase 1: SentrixSafe (currently 1-of-1).
-# Phase 3b+: multisig addresses. See SINGLE_SIG_BOOTSTRAP_POLICY.md.
+# Phase 3b+: multisig addresses. See BOOTSTRAP_ROLE_HOLDER.md.
 export FIATTOKEN_NAME="Bridged USDC (Sentrix)"
 export FIATTOKEN_SYMBOL=USDC.e
 export FIATTOKEN_DECIMALS=6
@@ -231,7 +231,7 @@ Same flow as testnet but:
 - Replace Sepolia USDC address with Ethereum mainnet USDC (`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`)
 - Replace SENTRIX_CHAIN_ID with 7119
 - Use mainnet RPC for Sentrix
-- All role addresses are MAINNET keys, NEVER reuse testnet keys (Phase 3a may still be single-sig per `SINGLE_SIG_BOOTSTRAP_POLICY.md`; Phase 3b+ multisig)
+- All role addresses are MAINNET keys, NEVER reuse testnet keys (Phase 3a may still be single-sig per `BOOTSTRAP_ROLE_HOLDER.md`; Phase 3b+ multisig)
 - Set `ALLOW_MAINNET_DEPLOY=1` if deploy script has guard
 - External audit must be complete first
 - Run mirror test: testnet AND mainnet configurations must match exactly

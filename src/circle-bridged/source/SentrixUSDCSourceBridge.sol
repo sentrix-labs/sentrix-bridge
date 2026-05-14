@@ -62,7 +62,7 @@ contract SentrixUSDCSourceBridge is
     // ----------------------------------------------------------------- //
 
     /// @notice Can pause/unpause bridging. Phase 1: SentrixSafe (currently 1-of-1). Phase 3b+:
-    ///         multisig recommended. See docs/stablecoin/SINGLE_SIG_BOOTSTRAP_POLICY.md.
+    ///         multisig recommended. See docs/stablecoin/BOOTSTRAP_ROLE_HOLDER.md.
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /// @notice Can release locked USDC on verified Sentrix burn.

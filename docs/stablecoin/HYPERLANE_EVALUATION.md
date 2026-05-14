@@ -2,7 +2,7 @@
 
 > Conclusion up front: **Hyperlane is the right transport for Phase 2.** The
 > `HypFiatToken` extension was built specifically for Circle's FiatToken
-> contracts. Integration is clean. Phase 1 stays operator-EOA-driven (single-sig bootstrap per SINGLE_SIG_BOOTSTRAP_POLICY.md)
+> contracts. Integration is clean. Phase 1 stays operator-EOA-driven (single-sig bootstrap per BOOTSTRAP_ROLE_HOLDER.md)
 > until MultisigIsm rollout + audit complete.
 
 ## What Hyperlane offers

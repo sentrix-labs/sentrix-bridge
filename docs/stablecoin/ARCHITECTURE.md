@@ -26,7 +26,7 @@ ETHEREUM SEPOLIA (testnet) / Ethereum mainnet (later)        SENTRIX 7120 / 7119
                                                                 pauser, blacklister,
         Hyperlane Mailbox + MultisigIsm                         rescuer, proxy admin
         (Phase 2 onward)                                        (single-sig bootstrap;
-                                                                 see SINGLE_SIG_BOOTSTRAP_POLICY.md)
+                                                                 see BOOTSTRAP_ROLE_HOLDER.md)
        │                                                        masterMinter configures
        │                                                        HypFiatToken (or Phase 1
        v                                                        operator EOA) as
