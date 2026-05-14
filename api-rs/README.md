@@ -60,8 +60,8 @@ curl -s http://127.0.0.1:8090/status | jq
 {
   "network": "mainnet",
   "uptime_seconds": 42,
-  "sentrix_rpc": "https://rpc.sentrixchain.com",
-  "sepolia_rpc": "https://ethereum-sepolia.publicnode.com",
+  "sentrix_rpc": { "configured": true },
+  "sepolia_rpc": { "configured": true },
   "route_count": 2,
   "unsafe_route_count": 2,
   "routes": [{ "id": "msg-sentrix-testnet-sepolia", "...": "..." }],
@@ -70,6 +70,11 @@ curl -s http://127.0.0.1:8090/status | jq
   "stuck_message_count":{ "status": "unknown", "count": 0, "note": "..." }
 }
 ```
+
+> Bare RPC URLs are intentionally omitted from this response — operators may
+> point `SENTRIX_RPC_URL` / `SEPOLIA_RPC_URL` at keyed Infura/Alchemy
+> endpoints. Endpoint config is reported as `{ "configured": true | false }`;
+> the URL string itself only appears in tracing logs.
 
 ### `GET /routes`
 

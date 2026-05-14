@@ -31,14 +31,22 @@ jobs:
           # action rejects it as an allowlist entry. LayerZero contracts ship
           # as git submodules / forge libs and don't surface in the GitHub
           # Dependency Graph anyway, so omitting it is not a coverage gap.
+          # Union of HEAD (post-#19 merge: includes CDLA-Permissive-2.0 inline)
+          # and api-rs branch (per-crate allowlist). Keeping both covers the
+          # license-string and per-crate-name resolution paths in the action.
           allow-licenses: MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception, BSD-2-Clause, BSD-3-Clause, ISC, Unicode-DFS-2016, Unicode-3.0, CC0-1.0, 0BSD, MPL-2.0, Zlib, NCSA, BUSL-1.1, CDLA-Permissive-2.0
-          # Build-time exemptions:
-          # * `Swatinem/rust-cache` — copyleft GitHub Action; doesn't ship
+          # Per-crate exemptions:
+          # * `Swatinem/rust-cache` — copyleft GitHub Action, doesn't ship
           #   in bridge artifacts.
           # * `ark-std` / `semver-parser` — Cargo metadata declares the
-          #   non-SPDX string `MIT/Apache-2.0` (should be `MIT OR
-          #   Apache-2.0`). Both are dual-licensed under MIT and Apache-2.0
-          #   per their own README/LICENSE files; allowlist the specific
-          #   crates rather than blanket-accepting the malformed identifier.
-          allow-dependencies-licenses: pkg:githubactions/Swatinem/rust-cache, pkg:cargo/ark-std, pkg:cargo/semver-parser
+          #   non-SPDX string `MIT/Apache-2.0` (legacy slash form). Both
+          #   halves already in allowlist above; allowlist by crate name.
+          # * `webpki-root-certs` — `CDLA-Permissive-2.0` (Mozilla CA
+          #   bundle), kept as belt-and-braces in case the license-string
+          #   path doesn't match.
+          allow-dependencies-licenses: >-
+            pkg:githubactions/Swatinem/rust-cache,
+            pkg:cargo/ark-std,
+            pkg:cargo/semver-parser,
+            pkg:cargo/webpki-root-certs
           comment-summary-in-pr: on-failure

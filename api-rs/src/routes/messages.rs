@@ -51,7 +51,9 @@ pub async fn list(
     State(_state): State<Arc<AppState>>,
     Query(q): Query<MessagesQuery>,
 ) -> Json<MessagesResponse> {
-    let limit = q.limit.unwrap_or(50).min(200);
+    // Clamp on both ends — `limit=0` would silently return an empty page and
+    // make callers think they hit the end of history.
+    let limit = q.limit.unwrap_or(50).clamp(1, 200);
     Json(MessagesResponse {
         status: "pending_implementation",
         since: q.since,
