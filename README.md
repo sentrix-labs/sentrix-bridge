@@ -193,7 +193,7 @@ Both `Dispatch` (Sentrix side) and `Handle` (Sepolia side) emit on the canonical
 | [#2](https://github.com/sentrix-labs/sentrix-bridge/issues/2) | Track Sentrix EID assignment from LayerZero Labs | Application drafted, awaiting submission |
 | [#3](https://github.com/sentrix-labs/sentrix-bridge/issues/3) | Hyperlane production MultisigIsm setup | Runbook drafted, validator-set TBD |
 | [#4](https://github.com/sentrix-labs/sentrix-bridge/issues/4) | LZ — deploy PriceFeed + Executor + Treasury + DVN for production | Scoping |
-| [#5](https://github.com/sentrix-labs/sentrix-bridge/issues/5) | Re-verify cross-chain user-entry path after sentrix-labs/sentrix#580 closes | Blocked on upstream chain bug |
+| [#5](https://github.com/sentrix-labs/sentrix-bridge/issues/5) | Re-verify cross-chain user-entry path after sentrix-labs/sentrix#580 closes | Re-verified post-#580 close — fresh-user wrap path works |
 
 ## License
 
