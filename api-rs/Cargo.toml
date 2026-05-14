@@ -41,6 +41,7 @@ alloy = { version = "2.0", default-features = false, features = [
     "serde",
     "reqwest-rustls-tls",
 ] }
+url = { version = "2.5.8", default-features = false }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

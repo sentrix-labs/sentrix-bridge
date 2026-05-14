@@ -90,12 +90,14 @@ pub async fn handler(State(state): State<Arc<AppState>>) -> Json<StatusResponse>
     let routes = &state.deployments.routes;
     let unsafe_count = routes.iter().filter(|r| r.unsafe_flag).count();
 
-    // Operator-private RPC URLs (may include Infura/Alchemy keys) only ever
-    // appear in tracing logs, never in the public response.
+    // Operator-private RPC URLs (may include Infura/Alchemy keys) get
+    // redacted to `<host>/<masked>` in tracing too — debug logs travel
+    // (journald, log shippers, screenshots) and a full key in a log line
+    // is the same exposure class as a key in a response body.
     tracing::debug!(
-        sentrix_rpc = %state.config.sentrix_rpc,
-        sepolia_rpc = %state.config.sepolia_rpc,
-        "status request — RPC endpoints"
+        sentrix_rpc = %redact_rpc(&state.config.sentrix_rpc),
+        sepolia_rpc = %redact_rpc(&state.config.sepolia_rpc),
+        "status request — RPC endpoints (redacted)"
     );
 
     Json(StatusResponse {
@@ -133,4 +135,70 @@ pub async fn handler(State(state): State<Arc<AppState>>) -> Json<StatusResponse>
             note: "stuck-message scan not wired yet — see TODO in routes/status.rs",
         },
     })
+}
+
+/// Strip Infura/Alchemy-style API keys + path tokens from an RPC URL so a
+/// debug log line never leaks the secret. Keeps `<scheme>://<host>` only;
+/// trailing path/query/fragment is replaced with `/<masked>`. Empty or
+/// invalid input round-trips as `<unset>`.
+fn redact_rpc(url: &str) -> String {
+    if url.is_empty() {
+        return "<unset>".into();
+    }
+    // url::Url is already a transitive dep via reqwest; parse + reassemble.
+    match url::Url::parse(url) {
+        Ok(u) => {
+            let host = u.host_str().unwrap_or("?");
+            let port = u
+                .port()
+                .map(|p| format!(":{p}"))
+                .unwrap_or_default();
+            let path_masked = if u.path() == "/" || u.path().is_empty() {
+                String::new()
+            } else {
+                "/<masked>".to_string()
+            };
+            format!("{}://{}{}{}", u.scheme(), host, port, path_masked)
+        }
+        Err(_) => "<unparseable>".into(),
+    }
+}
+
+#[cfg(test)]
+mod redact_tests {
+    use super::redact_rpc;
+
+    #[test]
+    fn empty_renders_unset() {
+        assert_eq!(redact_rpc(""), "<unset>");
+    }
+
+    #[test]
+    fn keeps_scheme_and_host_drops_path() {
+        assert_eq!(
+            redact_rpc("https://mainnet.infura.io/v3/abc123secret"),
+            "https://mainnet.infura.io/<masked>"
+        );
+    }
+
+    #[test]
+    fn keeps_port() {
+        assert_eq!(
+            redact_rpc("http://localhost:8545/rpc/topsecret"),
+            "http://localhost:8545/<masked>"
+        );
+    }
+
+    #[test]
+    fn bare_host_no_path() {
+        assert_eq!(
+            redact_rpc("https://rpc.sentrixchain.com"),
+            "https://rpc.sentrixchain.com"
+        );
+    }
+
+    #[test]
+    fn unparseable_redacts() {
+        assert_eq!(redact_rpc("not a url"), "<unparseable>");
+    }
 }
