@@ -2,6 +2,16 @@
 
 Prereqs: Step 1 prep complete (this repo built locally, `forge build` succeeds).
 
+> **Key-handling rule.** Never `cat wallet.txt` to stdout, never pipe a
+> plaintext key through `grep`/`awk`/`tee`. Plaintext in a pipeline lands
+> in shell history, scrollback, terminal multiplexer buffers, and any
+> tee'd log — and if the terminal session is being shared (chat, screen
+> recording, support call) it leaks there too. Use `cast wallet
+> decrypt-keystore --interactive` (TTY prompt, no echo) or
+> `--password-file <path>` pointing at a 0600-perm file. The patterns
+> below only feed the decrypted key into `DEPLOYER_PK` via process
+> substitution — the plaintext never appears as a standalone shell token.
+
 ## 1. Load deployer private key
 
 Pick one of:
@@ -9,21 +19,31 @@ Pick one of:
 ### Option A — Faucet wallet (already premined with 100M SRX-test)
 
 ```bash
-# Decrypt the faucet keystore (operator workstation)
-PK=$(sentrix wallet decrypt \
-      --password "$(cat ~/sentrix/secrets/faucets/testnet/wallet.txt | grep PASSWORD | cut -d= -f2)" \
-      ~/sentrix/secrets/faucets/testnet/keystore.json \
-      | grep "Private key:" | awk '{print $3}')
-export DEPLOYER_PK="$PK"
-unset PK   # don't leave in shell history
+# Decrypt the faucet keystore. Interactive prompt — no password on the
+# command line, no plaintext in shell history.
+export DEPLOYER_PK=$(cast wallet decrypt-keystore \
+  --interactive \
+  ~/sentrix/secrets/faucets/testnet/keystore.json)
+
+# Non-interactive variant (CI / scripted): point at a 0600 password file.
+# The file must contain ONLY the password, no trailing newline noise.
+#   chmod 600 ~/.config/sentrix/faucet-testnet.pw
+# export DEPLOYER_PK=$(cast wallet decrypt-keystore \
+#   --password-file ~/.config/sentrix/faucet-testnet.pw \
+#   ~/sentrix/secrets/faucets/testnet/keystore.json)
 ```
 
 ### Option B — Fresh wallet + fund via faucet UI
 
 ```bash
-cast wallet new   # write down PK + address
-# Visit https://faucet.sentrixchain.com, drip to the new address
-export DEPLOYER_PK=<fresh-wallet-pk>
+# `cast wallet new` writes the new PK to stdout — run in a private TTY
+# (no screen-share, no `tee`, no logged terminal). Persist by encrypting
+# into a keystore immediately:
+cast wallet new
+# Then re-import that PK into a keystore file:
+cast wallet import fresh-deployer --interactive
+# Visit https://faucet.sentrixchain.com, drip to the printed address.
+# Load DEPLOYER_PK from the keystore via Option A above.
 ```
 
 ## 2. Verify address has gas
@@ -72,8 +92,12 @@ Open `https://testnet-scan.sentrixchain.com/address/<address>` for each deployed
 
 ```bash
 unset DEPLOYER_PK
-history -d $(history 1)   # forget the cast wallet command if you didn't use mktemp
 ```
+
+(`history -d` is unreliable — no-op in non-interactive shells, varies
+across bash/zsh/HISTCONTROL settings, gives a false sense of safety.
+Better: keep the keystore + interactive prompt pattern from §1 so no
+plaintext key ever enters the shell as a token in the first place.)
 
 ## 7. Commit deployments
 

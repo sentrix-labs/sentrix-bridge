@@ -43,7 +43,11 @@ Deployment script: [`scripts/DeployLZ-SentrixTestnet.s.sol`](../scripts/DeployLZ
 
 ## Proposed EID
 
-Requesting EID assignment for both networks. Current placeholder (testnet) = `40998`; this code path will be re-deployed once an official EID is issued.
+Requesting EID assignment for both networks. The current local placeholder is
+intentionally not advertised here — squat-able by anyone reading public docs.
+Once LZ Labs assigns an official EID we will redeploy the endpoint stack under
+that EID (the eid is constructor-immutable in `EndpointV2`) and update this
+table.
 
 ## Security posture
 
