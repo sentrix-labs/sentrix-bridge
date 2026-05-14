@@ -21,14 +21,15 @@ ETHEREUM SEPOLIA (testnet) / Ethereum mainnet (later)        SENTRIX 7120 / 7119
        │ source bridge.                                       Address = canonical USDC.e
        │
        │ Hyperlane Mailbox (Phase 2)
-       │ or OPERATOR_ROLE multisig (Phase 1)                  Operator multisig holds:
+       │ or OPERATOR_ROLE EOA (Phase 1)                  Operator EOA holds:
        v                                                        owner, masterMinter,
                                                                 pauser, blacklister,
         Hyperlane Mailbox + MultisigIsm                         rescuer, proxy admin
-        (Phase 2 onward)
+        (Phase 2 onward)                                        (single-sig bootstrap;
+                                                                 see SINGLE_SIG_BOOTSTRAP_POLICY.md)
        │                                                        masterMinter configures
        │                                                        HypFiatToken (or Phase 1
-       v                                                        operator multisig) as
+       v                                                        operator EOA) as
                                                                 a minter with allowance.
         HypFiatToken (Hyperlane extension,
         solc ^0.8.0) on Sentrix
@@ -44,21 +45,21 @@ ETHEREUM SEPOLIA (testnet) / Ethereum mainnet (later)        SENTRIX 7120 / 7119
 
 | Role | Initial holder | Phase 4 (Circle handoff) |
 |---|---|---|
-| `admin` (proxy-level, AdminUpgradeabilityProxy) | Sentrix operator multisig | Transferred to Circle |
-| `owner` (implementation-level) | Sentrix operator multisig | Transferred to Circle via `transferUSDCRoles` |
-| `masterMinter` | Sentrix operator multisig | Removed (Circle removes minters first, then takes owner) |
-| `pauser` | Sentrix operator multisig | Transferred to Circle |
-| `blacklister` | Sentrix operator multisig | Transferred to Circle |
-| `rescuer` | Sentrix operator multisig | Transferred to Circle |
-| `minters` (configured) | Phase 1: operator multisig. Phase 2+: HypFiatToken contract address | Removed by partner before role transfer |
+| `admin` (proxy-level, AdminUpgradeabilityProxy) | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `owner` (implementation-level) | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle via `transferUSDCRoles` |
+| `masterMinter` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Removed (Circle removes minters first, then takes owner) |
+| `pauser` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `blacklister` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `rescuer` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `minters` (configured) | Phase 1: 1-of-1 SentrixSafe (single-signer). Phase 2+: HypFiatToken contract address | Removed by partner before role transfer |
 
 ### Source bridge (`SentrixUSDCSourceBridge`)
 
 | Role | Initial holder | Notes |
 |---|---|---|
-| `DEFAULT_ADMIN_ROLE` | Sentrix operator multisig | Can grant/revoke all other roles |
-| `OPERATOR_ROLE` | Phase 1: Sentrix operator multisig. Phase 2: Hyperlane handler contract | Calls `release` |
-| `PAUSER_ROLE` | Sentrix operator multisig | Pauses bridging |
+| `DEFAULT_ADMIN_ROLE` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Can grant/revoke all other roles |
+| `OPERATOR_ROLE` | Phase 1: 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+). Phase 2: Hyperlane handler contract | Calls `release` |
+| `PAUSER_ROLE` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Pauses bridging |
 | `CIRCLE_BURN_ROLE` | EMPTY until Circle requests | Granted by admin at upgrade time to Circle-specified address |
 | `CIRCLE_ROLE_TRANSFER_ROLE` | EMPTY until Circle requests | Granted by admin at upgrade time to Circle-specified address |
 
@@ -93,8 +94,8 @@ ETHEREUM SEPOLIA (testnet) / Ethereum mainnet (later)        SENTRIX 7120 / 7119
 
 ### Pause (any time)
 
-1. PAUSER_ROLE multisig calls `pauseBridging()` on source bridge
-2. Equivalent: pauser multisig calls `pause()` on FiatToken proxy on Sentrix
+1. PAUSER_ROLE holder calls `pauseBridging()` on source bridge
+2. Equivalent: pauser calls `pause()` on FiatToken proxy on Sentrix
 3. Deposits + releases + mints + burns + transfers blocked until unpause
 
 ### Reserve reconciliation
@@ -129,7 +130,7 @@ re-order or remove existing storage slots — append new state to the gap.
 ## What is NOT in this design
 
 - A custom ERC20 bridged USDC. We use Circle's FiatToken unchanged.
-- Trustless bridge in Phase 1. Phase 1 is operator multisig trusted; Phase 2
+- Trustless bridge in Phase 1. Phase 1 is operator EOA trusted; Phase 2
   introduces Hyperlane MultisigIsm.
 - CCTP integration. Defer until Sentrix is on Circle's supported chain list.
 - LayerZero or Wormhole for USDC. Reserved for SRX multichain.

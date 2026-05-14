@@ -2,7 +2,7 @@
 
 > Conclusion up front: **Hyperlane is the right transport for Phase 2.** The
 > `HypFiatToken` extension was built specifically for Circle's FiatToken
-> contracts. Integration is clean. Phase 1 stays operator-multisig-driven
+> contracts. Integration is clean. Phase 1 stays operator-EOA-driven (single-sig bootstrap per SINGLE_SIG_BOOTSTRAP_POLICY.md)
 > until MultisigIsm rollout + audit complete.
 
 ## What Hyperlane offers
@@ -89,7 +89,7 @@ slot. Run storage-layout diff before deploying upgrade.
   allowance level OR add custom rate limiter to source bridge.
 - Automated reorg recovery. Source-chain reorg post-mint = supply mismatch
   requiring operator intervention. Reserve monitor catches this.
-- Decentralized validator set out-of-the-box. We provide our own multisig of
+- Decentralized validator set out-of-the-box. We provide our own set of
   validators initially; decentralize over time (see `SECURITY_MODEL.md`).
 - Built-in upgrade path to Circle native USDC. Hyperlane is just the
   transport — the Circle handoff happens on the FiatToken proxy + source
@@ -112,12 +112,12 @@ multichain** (not in scope for this doc; see `docs/multichain-roadmap.md`).
 
 ## Decision
 
-- **Phase 1 (testnet):** No Hyperlane integration yet. Operator multisig holds
+- **Phase 1 (testnet):** No Hyperlane integration yet. Operator EOA holds
   OPERATOR_ROLE on source bridge and minter role on Sentrix FiatToken. All
   cross-chain action is operator-signed. Clearly testnet-only.
 - **Phase 2 (testnet → mainnet):** Wire Hyperlane Mailbox into the source
   bridge. Deploy HypFiatToken on Sentrix. Transfer FiatToken minter role
-  from operator EOA to HypFiatToken contract. Operator multisig retains
+  from operator EOA to HypFiatToken contract. Operator EOA (single-sig bootstrap) retains
   emergency pause + upgrade authority.
 - **Phase 3+:** Decentralize the MultisigIsm validator set.
 - **Phase 4 (Circle handoff, if approved):** Hyperlane is the transport;
@@ -130,7 +130,7 @@ multichain** (not in scope for this doc; see `docs/multichain-roadmap.md`).
 2. Add `dispatch(...)` call inside `deposit()`.
 3. Add `handle(...)` override to receive Hyperlane messages and call
    `release()` internally.
-4. Migrate OPERATOR_ROLE from operator multisig to Mailbox address; keep
+4. Migrate OPERATOR_ROLE from operator EOA to Mailbox address; keep
    emergency-operator fallback if Hyperlane misbehaves.
 5. Deploy HypFiatToken on Sentrix with FiatToken proxy as the wrapped token.
 6. masterMinter calls `configureMinter(HypFiatToken_address, cap)` on

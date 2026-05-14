@@ -78,13 +78,16 @@ review), the custom ERC20 path is wrong. We use Circle's contracts unmodified.
   Hardhat-based scripts from `circlefin/stablecoin-evm` (Node 20.9.0, Yarn
   1.22.19, Foundry@f625d0f per their README).
 - Use `AdminUpgradeabilityProxy` (Circle's, not OZ's).
-- Initialize with operator-controlled multisig as `owner`, `masterMinter`,
-  `pauser`, `blacklister`, `rescuer`. Proxy `admin` = separate multisig.
+- Initialize with 1-of-1 SentrixSafe as `owner`, `masterMinter`, `pauser`,
+  `blacklister`, `rescuer`. Proxy `admin` can be the same EOA OR (best
+  practice) a separate operator-held EOA for role-family separation. Single-sig
+  bootstrap policy applies — see `SINGLE_SIG_BOOTSTRAP_POLICY.md`. Multisig is
+  a Phase 3+ graduation milestone, not a Phase 1 launch requirement.
 - Deploy `SentrixUSDCSourceBridge` (this repo, `src/circle-bridged/source/`,
   scaffold complete) on Sepolia behind ERC1967Proxy.
-- Wire by manual relayer: operator multisig holds OPERATOR_ROLE on source
-  bridge, manually verifies cross-chain events and calls `release` on source
-  and `mint` on destination (via masterMinter → bridge minter address).
+- Wire by manual relayer: 1-of-1 SentrixSafe holds OPERATOR_ROLE on source bridge,
+  manually verifies cross-chain events and calls `release` on source and
+  `mint` on destination (via masterMinter → bridge minter address).
 - Mint allowance is set by masterMinter for the destination bridge address —
   initial cap kept small (e.g. 10,000 USDC) for testnet bootstrap.
 - Both pausable.
@@ -95,9 +98,9 @@ review), the custom ERC20 path is wrong. We use Circle's contracts unmodified.
 
 Replace manual relayer with Hyperlane HypFiatToken on Sentrix side and a
 Hyperlane-driven source bridge. Source bridge stops accepting `release()`
-from operator EOA/multisig and instead accepts it only from the Hyperlane
-Mailbox after MultisigIsm validation. Operator multisig still holds emergency
-pause and upgrade authority.
+from operator EOA and instead accepts it only from the Hyperlane Mailbox
+after MultisigIsm validation. Operator-controlled 1-of-1 SentrixSafe still holds emergency pause and
+upgrade authority (single-sig bootstrap policy continues through Phase 2).
 
 See `HYPERLANE_EVALUATION.md` for the integration analysis.
 

@@ -26,7 +26,7 @@ may decline. The checklist puts us in the strongest possible position.
 - [ ] Token symbol = "USDC.e"
 - [ ] Token decimals = 6
 - [ ] Token currency = "USD"
-- [ ] All 6 roles assigned to multisig addresses (not EOAs)
+- [ ] All 6 roles assigned to controlled addresses (Phase 1 single-sig EOAs acceptable per SINGLE_SIG_BOOTSTRAP_POLICY.md; multisig required before Phase 4 Circle handoff)
 - [ ] Roles documented + verifiable on-chain via `cast call`
 
 ### Source bridge (Ethereum mainnet)

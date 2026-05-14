@@ -81,7 +81,7 @@ cannot be retroactively applied." Deploying sUSDC to mainnet would
    and exercise the full deposit→mint→burn→release loop.
 4. `watcher-rs` extension to monitor the Circle-built bridge (`totalLocked`
    vs `totalSupply` reconciliation, reorg watcher, dedup table).
-5. Deploy multisigs on Sepolia + Sentrix testnet (Gnosis Safe).
+5. Provision operator EOAs on Sepolia + Sentrix testnet (HSM-backed). Multisig deployment is Phase 3b graduation item per SINGLE_SIG_BOOTSTRAP_POLICY.md.
 
 ### Phase 2 work (Hyperlane wiring)
 

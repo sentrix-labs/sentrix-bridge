@@ -12,18 +12,30 @@
 - Foundry — pinned to the version in Circle's repo's `package.json` (currently `f625d0fa7c51e65b4bf1e8f7931cd1c6e2e285e9`). Sentrix's local `forge --version` is `1.6.0-v1.7.0` which is newer but should be ABI-compatible for these contracts. Verify before mainnet.
 - A funded deployer EOA on both Sepolia and Sentrix testnet. Keep private key in HSM / encrypted keystore — never plaintext.
 
-### Operator multisig setup (one-time, before any deployment)
+### Operator key setup (one-time, before any deployment)
 
-Deploy two multisigs (Gnosis Safe or equivalent):
+Phase 1 / Phase 2 runs on single-sig operator EOAs per
+`SINGLE_SIG_BOOTSTRAP_POLICY.md`. Multisig is a Phase 3b graduation
+milestone, not a Phase 1 launch requirement.
 
-1. **Source-chain multisig (Sepolia / Ethereum):** holds `DEFAULT_ADMIN_ROLE`,
-   `OPERATOR_ROLE`, `PAUSER_ROLE` on the source bridge.
-2. **Sentrix-chain multisig:** holds FiatToken `admin`, `owner`,
-   `masterMinter`, `pauser`, `blacklister`, `rescuer`.
+Provision:
 
-Threshold: 3-of-5 minimum for testnet bootstrap. 4-of-7 for mainnet target.
-Document the signer list. Per the `feedback_no_wallet_txt_in_chat` rule:
-NEVER paste private keys or mnemonics into chat / scrollback / logs.
+1. **Source-chain operator key (Sepolia / Ethereum):** holds
+   `DEFAULT_ADMIN_ROLE`, `OPERATOR_ROLE`, `PAUSER_ROLE` on the source
+   bridge. Different physical key from #2 (role-family separation).
+2. **Sentrix-chain operator key:** holds FiatToken `admin`, `owner`,
+   `masterMinter`, `pauser`, `blacklister`, `rescuer`. Best practice:
+   split `admin` (proxy) from `owner` (impl) into two distinct EOAs even
+   when both held by operator — so a compromise of one doesn't pwn both.
+
+Key custody:
+- HSM (AWS KMS / Google Cloud KMS / Ledger / Trezor) — NEVER plaintext.
+- Encrypted seed-phrase backup in two geographically separate locations.
+- Per earned-rule `feedback_no_wallet_txt_in_chat`: NEVER paste private
+  keys or mnemonics into chat / scrollback / logs.
+
+Multisig migration plan (later, see `SINGLE_SIG_BOOTSTRAP_POLICY.md`):
+threshold 2-of-3 when first co-signer recruited, 4-of-7 by Phase 3c.
 
 ## Step 1 — Clone Circle's `stablecoin-evm` (NOT a submodule of this repo)
 
@@ -84,17 +96,18 @@ Save the implementation address. Will be used in Step 4.
 ## Step 4 — Deploy FiatTokenProxy + initialize through proxy
 
 ```bash
-# Roles for initialization. Use multisig addresses, NOT EOAs in production.
+# Roles for initialization. Phase 1: 1-of-1 SentrixSafe (single-signer bootstrap).
+# Phase 3b+: multisig addresses. See SINGLE_SIG_BOOTSTRAP_POLICY.md.
 export FIATTOKEN_NAME="Bridged USDC (Sentrix)"
 export FIATTOKEN_SYMBOL=USDC.e
 export FIATTOKEN_DECIMALS=6
 export FIATTOKEN_CURRENCY=USD
-export ADMIN_ADDR=...           # operator multisig (proxy admin)
-export OWNER_ADDR=...           # operator multisig (impl owner)
-export MASTER_MINTER_ADDR=...   # operator multisig (master minter)
-export PAUSER_ADDR=...          # operator multisig
-export BLACKLISTER_ADDR=...     # operator multisig
-export RESCUER_ADDR=...         # operator multisig
+export ADMIN_ADDR=...           # 1-of-1 SentrixSafe — proxy admin (can be same as OWNER or separate)
+export OWNER_ADDR=...           # 1-of-1 SentrixSafe — impl owner
+export MASTER_MINTER_ADDR=...   # 1-of-1 SentrixSafe — master minter
+export PAUSER_ADDR=...          # operator EOA
+export BLACKLISTER_ADDR=...     # operator EOA
+export RESCUER_ADDR=...         # operator EOA
 
 # 1. Deploy FiatTokenProxy(implementationAddress) — proxy.admin defaults to deployer EOA
 # 2. As deployer EOA, call proxy.changeAdmin(ADMIN_ADDR) IMMEDIATELY
@@ -138,9 +151,9 @@ export SEPOLIA_RPC=https://sepolia.infura.io/v3/...
 export DEPLOYER_PK=...
 export SOURCE_USDC=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238  # Sepolia USDC (VERIFY)
 export SENTRIX_CHAIN_ID=7120
-export SOURCE_ADMIN=...      # source-chain multisig
-export SOURCE_OPERATOR=...   # source-chain multisig (Phase 1)
-export SOURCE_PAUSER=...     # source-chain multisig
+export SOURCE_ADMIN=...      # source-chain operator EOA
+export SOURCE_OPERATOR=...   # source-chain operator EOA (Phase 1)
+export SOURCE_PAUSER=...     # source-chain operator EOA
 
 # 1. Deploy SentrixUSDCSourceBridge implementation
 # 2. Deploy ERC1967Proxy(impl, abi.encodeWithSelector(initialize.selector, usdc, sentrixChainId, admin, operator, pauser))
@@ -155,7 +168,7 @@ proxy + impl pair.)
 
 PHASE 1 (operator-driven):
 ```
-# As masterMinter multisig on Sentrix:
+# As masterMinter (operator EOA) on Sentrix:
 fiatToken.configureMinter(operatorRelayerAddress, 10000_000000)  # 10,000 USDC cap
 
 # Operator relayer is now allowed to mint up to 10K USDC.e per allowance
@@ -172,7 +185,7 @@ fiatToken.removeMinter(operatorRelayerAddress)
 ## Step 7 — Smoke test (testnet)
 
 1. Deposit 10 USDC on Sepolia: `usdc.approve(bridge); bridge.deposit(myAddrOnSentrix, 10_000000)`.
-2. Watcher detects → operator multisig signs `fiatToken.mint(myAddrOnSentrix, 10_000000)`.
+2. Watcher detects → operator EOA signs `fiatToken.mint(myAddrOnSentrix, 10_000000)`.
 3. Verify `fiatToken.balanceOf(myAddrOnSentrix) == 10_000000` on Sentrix.
 4. Reverse: `fiatToken.transfer(operatorAddr, 10_000000)` then operator burns
    and signals source bridge → `bridge.release(withdrawalId, myAddrOnSepolia, 10_000000)`.
@@ -218,7 +231,7 @@ Same flow as testnet but:
 - Replace Sepolia USDC address with Ethereum mainnet USDC (`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`)
 - Replace SENTRIX_CHAIN_ID with 7119
 - Use mainnet RPC for Sentrix
-- All role addresses are MAINNET multisig addresses, NEVER reuse testnet keys
+- All role addresses are MAINNET keys, NEVER reuse testnet keys (Phase 3a may still be single-sig per `SINGLE_SIG_BOOTSTRAP_POLICY.md`; Phase 3b+ multisig)
 - Set `ALLOW_MAINNET_DEPLOY=1` if deploy script has guard
 - External audit must be complete first
 - Run mirror test: testnet AND mainnet configurations must match exactly

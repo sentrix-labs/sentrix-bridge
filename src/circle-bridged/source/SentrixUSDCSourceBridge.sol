@@ -35,7 +35,8 @@ import {ICircleBridgedUSDCPausable} from "../interfaces/ICircleBridgedUSDCPausab
 ///         - Hyperlane integration is OUT (this is Phase 1 testnet — relayer-
 ///           driven). Phase 2 wires Hyperlane Mailbox + ISM for the cross-
 ///           chain message verification. Until then, `release` is gated by
-///           OPERATOR_ROLE (multisig).
+///           OPERATOR_ROLE (1-of-1 SentrixSafe in Phase 1 single-signer bootstrap;
+///           multisig recommended once co-signers recruited at Phase 3b+).
 ///         - The mint-allowance / cap is NOT enforced here — it lives on the
 ///           destination FiatToken via masterMinter. This contract is supply-
 ///           generating but not supply-restricting.
@@ -60,11 +61,12 @@ contract SentrixUSDCSourceBridge is
     //                              ROLES
     // ----------------------------------------------------------------- //
 
-    /// @notice Can pause/unpause bridging. Multisig required for production.
+    /// @notice Can pause/unpause bridging. Phase 1: 1-of-1 SentrixSafe (single-signer). Phase 3b+:
+    ///         multisig recommended. See docs/stablecoin/SINGLE_SIG_BOOTSTRAP_POLICY.md.
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /// @notice Can release locked USDC on verified Sentrix burn.
-    ///         PHASE 1: held by operator multisig.
+    ///         PHASE 1: held by 1-of-1 SentrixSafe (single-signer bootstrap).
     ///         PHASE 2: held by Hyperlane message handler.
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -128,9 +130,9 @@ contract SentrixUSDCSourceBridge is
 
     /// @param _usdc            The real USDC ERC20 contract on this chain.
     /// @param _sentrixChainId  Destination chain id (7120 testnet / 7119 mainnet).
-    /// @param _admin           DEFAULT_ADMIN_ROLE holder (multisig required for production).
-    /// @param _operator        OPERATOR_ROLE holder (Phase 1: multisig; Phase 2: Hyperlane handler).
-    /// @param _pauser          PAUSER_ROLE holder (multisig recommended).
+    /// @param _admin           DEFAULT_ADMIN_ROLE holder (operator EOA for Phase 1; multisig at Phase 3b+).
+    /// @param _operator        OPERATOR_ROLE holder (Phase 1: 1-of-1 SentrixSafe (single-signer); Phase 2: Hyperlane handler).
+    /// @param _pauser          PAUSER_ROLE holder (operator EOA for Phase 1; multisig recommended at scale).
     ///
     /// @dev Circle's burn and role-transfer roles are NOT granted here. They
     ///      are granted by the admin near upgrade time at Circle's request.
@@ -195,7 +197,7 @@ contract SentrixUSDCSourceBridge is
     // ----------------------------------------------------------------- //
 
     /// @notice Release locked USDC to a user after a verified burn on Sentrix.
-    /// @dev    PHASE 1: gated by OPERATOR_ROLE (multisig).
+    /// @dev    PHASE 1: gated by OPERATOR_ROLE (operator EOA, single-sig bootstrap).
     ///         PHASE 2: gated by Hyperlane Mailbox message handler.
     function release(uint256 withdrawalId, address recipient, uint256 amount)
         external
@@ -258,7 +260,7 @@ contract SentrixUSDCSourceBridge is
 
         // On the SENTRIX side (destination), this bridge does NOT hold the
         // FiatToken proxy admin or owner directly — those are held by a
-        // multisig that operator controls. The transfer happens via a
+        // EOA (or later multisig) that operator controls. The transfer happens via a
         // CROSS-CHAIN message to the destination bridge, which then performs
         // the role transfer on the destination FiatToken.
         //

@@ -8,12 +8,16 @@
 
 This system is **trusted-party**, not trustless, in Phase 1 and Phase 2:
 
-- **Phase 1 (operator-multisig bridge):** the operator multisig is the source
-  of truth for cross-chain message verification. Compromise of the multisig
-  threshold = compromise of the bridge.
+- **Phase 1 (operator single-sig bridge):** the operator EOA is the source of
+  truth for cross-chain message verification. Compromise of the operator key
+  = compromise of the bridge. See `SINGLE_SIG_BOOTSTRAP_POLICY.md`.
 - **Phase 2 (Hyperlane MultisigIsm bridge):** the configured MultisigIsm
-  validator set is the source of truth. Compromise of the threshold = compromise
-  of the bridge.
+  validator set is the source of truth for cross-chain message verification.
+  Compromise of the threshold = compromise of the bridge. (Source bridge
+  admin still single-sig operator EOA until Phase 3b.)
+- **Phase 3b+ (multisig admin):** operator multisig replaces single-sig EOA
+  for admin / pauser / role-control. Bridge transactions still verified by
+  Hyperlane MultisigIsm.
 - **Phase 4 (Circle native USDC):** the bridge is dissolved; Circle is the
   trusted issuer of native USDC. Trust shifts to Circle.
 
@@ -28,14 +32,14 @@ Severity scale:
 - **MED** — bounded loss per user / per period.
 - **LOW** — nuisance.
 
-### R1: Operator multisig compromise — CRIT
+### R1: Operator key compromise — CRIT
 
 | | |
 |---|---|
 | Impact | Attacker can drain locked USDC via unauthorized `release`, mint unlimited USDC.e via FiatToken minter role transfer, or upgrade the bridge to malicious implementation. |
-| Mitigation on-chain | Role separation (admin vs operator vs pauser). Each role on a SEPARATE multisig with different signer sets. |
-| Mitigation off-chain | Hardware-wallet signers. M-of-N threshold ≥ 3. No signer key shared between source and destination chain multisigs. |
-| Status | Operator-enforced. Must be verified at deploy time. |
+| Mitigation on-chain | Role separation (admin vs operator vs pauser). In Phase 1 single-sig bootstrap, each role on a SEPARATE EOA (different physical keys per role family). In Phase 3b+, replace with multisig. |
+| Mitigation off-chain | Operator key in HSM / hardware wallet. Encrypted seed-phrase backup in two geographically separate locations. Different keys for source-chain vs Sentrix-chain. Different keys for admin vs operator vs pauser. Per earned-rule `feedback_no_wallet_txt_in_chat`: NEVER plaintext, NEVER in chat. |
+| Status | Phase 1: single-sig bootstrap per `SINGLE_SIG_BOOTSTRAP_POLICY.md`. Phase 3b: multisig migration milestone. |
 
 ### R2: Hyperlane MultisigIsm validator compromise — HIGH (Phase 2+)
 
@@ -51,9 +55,9 @@ Severity scale:
 | | |
 |---|---|
 | Impact | Attacker who compromises the proxy `admin` can upgrade the FiatToken implementation to malicious code, draining all bridged USDC.e holders. |
-| Mitigation on-chain | Proxy `admin` is a SEPARATE multisig from `owner` per Circle's spec — defense in depth. |
-| Mitigation off-chain | Cold-storage multisig for proxy admin. Used only for the Circle handoff in Phase 4. |
-| Status | Enforced by deployment runbook. |
+| Mitigation on-chain | Proxy `admin` is a SEPARATE address from `owner` per Circle's spec — defense in depth. Phase 1: separate operator EOA. Phase 3b+: separate multisig. |
+| Mitigation off-chain | Proxy admin key in cold storage (hardware wallet, accessed only for upgrades). Phase 1 single-sig acceptable IF the key is genuinely cold (offline, used only rarely, recovery procedure documented). Phase 3b: cold-storage multisig. |
+| Status | Phase 1: cold-storage single-sig per `SINGLE_SIG_BOOTSTRAP_POLICY.md`. Phase 3b+: multisig. |
 
 ### R4: Reserve mismatch (supply > locked) — HIGH
 
@@ -132,9 +136,9 @@ Severity scale:
 | | |
 |---|---|
 | Impact | If the source bridge's upgrade admin is compromised, attacker can replace the bridge implementation with malicious code, e.g. removing `release` access control or draining via a fake `burnLockedUSDC`. |
-| Mitigation on-chain | ERC1967Proxy upgrade authority lives on DEFAULT_ADMIN_ROLE (admin multisig). |
-| Mitigation off-chain | Admin multisig with high threshold + hardware-wallet signers. Time-lock recommended for any upgrade (24-72h). |
-| Status | Time-lock not in current scaffold. Add before mainnet. |
+| Mitigation on-chain | ERC1967Proxy upgrade authority lives on DEFAULT_ADMIN_ROLE. Phase 1: 1-of-1 SentrixSafe (single-signer). Phase 3b+: multisig. |
+| Mitigation off-chain | Phase 1: admin EOA in cold storage (hardware wallet, used only for upgrades). Phase 3b: multisig with high threshold + hardware-wallet signers. Time-lock recommended for any upgrade (24-72h) regardless of phase. |
+| Status | Time-lock not in current scaffold. Add before mainnet (Phase 3a or 3b). |
 
 ### R13: Private key storage — CRIT
 
@@ -193,6 +197,15 @@ Severity scale:
 | Impact | If all MultisigIsm validators are operator-controlled, the security model is effectively single-operator regardless of M-of-N threshold. Single point of compromise. |
 | Mitigation off-chain | Decentralization roadmap: phase 2 = all-operator + transparency. Phase 3+ = onboard 2-3 external validators (RPC providers, community). Phase 4+ = fully decentralized. |
 | Status | Roadmap committed; execution pending. |
+
+### R21: Single-sig bootstrap concentration — HIGH
+
+| | |
+|---|---|
+| Impact | Phase 1 + Phase 2 + Phase 3a deploy with single-sig operator EOAs (separate per role family but all controlled by the same operator). A single key compromise = full bridge compromise, irrecoverable by any other party. Operator unavailability (medical, travel, death) = bridge frozen. |
+| Mitigation on-chain | Role-family key separation (admin / operator / pauser on different EOAs). Pausable. |
+| Mitigation off-chain | Per `SINGLE_SIG_BOOTSTRAP_POLICY.md`: HSM-grade key custody, encrypted seed-phrase backup in two geographic locations, documented recovery procedure, monitoring + alerting on every role-changing tx, key rotation on any suspected exposure. Honest public disclosure of single-sig trust model. Multisig migration roadmap (Phase 3b). |
+| Status | Acknowledged operational tradeoff. Disclosed publicly. Migration milestone defined. |
 
 ### R20: Token forks / re-deploys — MED
 
