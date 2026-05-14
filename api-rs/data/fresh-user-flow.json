@@ -1,0 +1,15 @@
+{
+  "status": "unknown",
+  "last_verified": null,
+  "detail": {
+    "note": "Operator updates this file after each successful WSRX deposit -> wrap -> bridge -> mint round trip on the wSRX warp route. Set status='pass' + last_verified=ISO8601 + detail.tx_hashes when a fresh user run completes end-to-end.",
+    "expected_keys_when_pass": [
+      "wrap_tx_sentrix",
+      "approve_tx_sentrix",
+      "bridge_tx_sentrix",
+      "mint_tx_sepolia",
+      "amount_wei",
+      "recipient"
+    ]
+  }
+}
