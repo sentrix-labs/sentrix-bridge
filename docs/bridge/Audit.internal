@@ -1,0 +1,144 @@
+# sentrix-bridge — internal audit log
+
+This file consolidates internal security audits + their fixes. Append new
+findings under dated headers; do not duplicate findings to other audit files.
+
+For per-finding fix code see the linked PR. For external-facing summary
+(operator decides when to publish) keep separate from this file.
+
+---
+
+## 2026-05-13 — internal Sentrix Labs audit (initial)
+
+**Scope:** all bridge-side code under `sentrix-bridge/` plus operator-authored
+deploy scripts; vendored Hyperlane + LayerZero source out of scope.
+
+**Verdict:** testnet-functional OK. Mainnet bridge gated on the HIGH items
+below + external audit pass.
+
+### Findings
+
+| Severity | Finding | Status |
+|---|---|---|
+| HIGH | `docs/runbook-step2-broadcast.md` + `.env.example` told operator to `cat wallet.txt | grep PASSWORD` and pipe `cast wallet decrypt-keystore | grep -i private` — plaintext key to bash stdout, scrollback, tee'd logs, chat transcripts. Violates operator's no-plaintext-key rule. | **Fixed PR #15** — replaced with `cast wallet decrypt-keystore --interactive` + `--password-file` patterns, added top-of-file warning, dropped the `history -d $(history 1)` false-assurance line. |
+| HIGH | `scripts/DeployLZ-SentrixTestnet.s.sol:45,62-63` — `new EndpointV2(eid, deployer)` then registerLibrary calls left owner = deployer hot key permanently. README claimed "transferred to SentrixSafe" but no code did it. | **Fixed PR #15** — script now reads `SENTRIX_SAFE` env (required, non-zero) and calls `endpoint.transferOwnership(sentrixSafe)` after registerLibrary. `.env.example` ships canonical testnet Safe `0xc9D7a61D7C2F428F6A055916488041fD00532110`. |
+| HIGH | NoopIsm on warp route: `HypERC20Collateral_sentrix` (`0xfb8190…bb32`) + `HypERC20_wSRX_sepolia` (`0xC4BDE5…e5a8`) both still pointed at NoopIsm. Anyone could `Mailbox.process(metadata=0x, forged_message)` on Sepolia to mint wSRX without locking corresponding SRX in the Sentrix collateral → unbacked-mint drain risk once TVL > the operator's 0.001 SRX demo. | **Doc fixed PR #15** — `docs/multisigism-setup.md` step 5 extended to cover the warp contracts (not just TestRecipient) with explicit `cast send` + verification examples. **Actual on-chain swap: pending operator-driven Phase 2 ISM rollout** (see roadmap). Watcher-rs surfaces this as `unsafe-config` route. |
+| MEDIUM | LayerZero placeholder `eid=40998` is squat-able by anyone who deploys an EndpointV2 with `_eid=40998` on another chain before LZ Labs assigns. | **Mitigated PR #15** — comment block in script + dropped public eid table row in `docs/lz-labs-application.md`. EndpointV2 `_eid` is immutable; once real EID lands operator must redeploy. |
+| MEDIUM | No production-readiness chain-id guard on LZ deploy scripts. | **Fixed PR #15** — added `require(chainid != 7119 || vm.envOr("ALLOW_MAINNET_DEPLOY", false))` to `DeployLZ-SentrixTestnet.s.sol` + `DeployLZ-Step3.s.sol`. |
+| MEDIUM | `README.md:102-111` documented `forge script hyperlane/scripts/DeployHyperlane*.s.sol` for files that don't exist. | **Fixed PR #15** — replaced with cast-send runbook reference. |
+| LOW | `foundry.toml` pinned solc 0.8.24; Hyperlane v3 sources need ^0.8.33. | **Fixed PR #15** — bumped to 0.8.33. |
+| LOW | `.env.example` default `DEPLOYER_PK=0x000…000` (known-zero key). | **Fixed PR #15** — set to empty so accidental forge runs fail at `vm.envUint` parse rather than running from zero address. |
+
+### Production-readiness blockers (carry over to Phase 4 mainnet)
+
+1. **MultisigIsm on-chain swap on warp-route contracts** — doc done, on-chain swap pending validator recruit.
+2. **Hyperlane validator + relayer agents running 24/7** — pending.
+3. **External audit** — firm TBD (Code4rena candidate).
+4. **LZ Labs real EID assignment** — application drafted (`docs/lz-labs-application.md`), pending LZ response.
+5. **Public faucet for SRX → ETH gas bootstrap** — design pending.
+6. **Insurance / treasury policy for bridge contract custody** — operator decision pending.
+7. **EVM payable/value flow on chain** — **CLOSED 2026-05-13**: sentrix-labs/sentrix#580 activated, gates baked at mainnet h=1,748,900 + testnet h=3,787,000, verified end-to-end via WSRX deposit (testnet tx `0x430f7a4f…`, mainnet tx `0x0b3187c4…`).
+
+---
+
+## 2026-05-14 — internal Sentrix Labs audit (bridge-hardening pass)
+
+**Trigger:** operator's "audit-first hardening" prompt to extend the bridge into
+a production-style foundation.
+
+**What was inspected:**
+
+- `sentrix-bridge/` full tree (excluding vendored `external/`, `LayerZero-v2/`
+  upstream, and `lib/` Foundry deps)
+- `sentrix-labs/sentrix` Cargo.toml (revm version), `crates/sentrix-evm`, `crates/sentrix-rpc`,
+  `crates/sentrix-proto` (published v0.1.1 on crates.io), `crates/sentrix-grpc`,
+  `crates/sentrix-precompiles`, `docs/architecture/EVM.md`
+- Existing audit notes: `docs/multichain-roadmap.md`, `docs/multisigism-setup.md`,
+  `docs/runbook-step2-broadcast.md`, `docs/lz-labs-application.md`
+- Verified deployments: `deployments/hyperlane-{testnet,sepolia}.json`,
+  `deployments/hyperlane-warp-route.json`, `deployments/testnet.json`
+
+**What already works:**
+
+- Hyperlane v3 demo route Sentrix Testnet ↔ Sepolia: message dispatch + manual
+  relay verified 2026-05-12. Warp-route value bridge demo (0.001 SRX → 0.001 wSRX
+  on Sepolia) verified same day.
+- LayerZero V2 endpoint stack live on Sentrix Testnet (placeholder eid=40998).
+- WSRX9 contracts deployed both nets and verified working end-to-end after #580 close.
+- All HIGH/MEDIUM/LOW from the 2026-05-13 audit shipped in PR #15 (merged).
+- Per-route deployment metadata committed in `deployments/`.
+
+**What is testnet-only / demo-only:**
+
+- All Hyperlane routes use `NoopIsm` (permissive — no real signature verification).
+  Documented in README + multichain-roadmap; see HIGH-3 above.
+- LayerZero stack carries placeholder eid=40998 — cannot peer with other chains'
+  real endpoints until LZ Labs assigns.
+- Hyperlane relay is **manual**: operator wallet calls `Mailbox.process(...)`. No
+  validator or relayer agents running.
+
+**What is unsafe for production:**
+
+- NoopIsm on any value-bearing route (HIGH-3, doc-mitigated, on-chain pending).
+- Single-key SentrixSafe (1-of-1) holds bridge contract ownership. Memory item
+  `project_multisig_3of5_dropped.md` notes 3-of-5 expansion is organic when
+  co-signers recruited.
+
+**What is blocked:**
+
+- Mainnet expansion blocked on items 1-6 in the production-readiness list above.
+- Phase 1 multi-destination testnet routes (BSC, Polygon Amoy, Base/Arb/OP
+  Sepolia) blocked on operator bandwidth — no code blocker.
+
+**What is stale or outdated:**
+
+- `docs/multichain-roadmap.md` line 67-68 currently shows BOTH "Unblocked
+  2026-05-13" and "Blocked by #580" lines side-by-side after a manual merge —
+  cosmetic contradiction; the file is human-readable and the unblocked line
+  takes precedence.
+- README's MultisigIsm runbook formerly referenced `DeployHyperlaneSentrixTestnet.s.sol`
+  scripts that don't exist; replaced PR #15 with cast-send runbook pointer.
+
+**Whether `docs/architecture/EVM.md` revm version was outdated:**
+
+- **Yes — fixed in sentrix-labs/sentrix PR #680 (2026-05-14).** Doc said `revm 37`,
+  workspace pinned `revm = "38"`. Also `web3_clientVersion: Sentrix/1.2.0/Rust`
+  was way out of date (current 2.2.11) — replaced with template form.
+
+**Whether code confirms revm v38:**
+
+- **Yes.** `sentrix-labs/sentrix/Cargo.toml` line `revm = { version = "38", default-features = false, features = ["std", "serde", "optional_balance_check", "optional_no_base_fee"] }`.
+
+**Whether receipts/logs/events are sufficient for Hyperlane/LayerZero bridge operation:**
+
+- **Yes.** Bridge demo run 2026-05-12 produced full receipt + logs end-to-end
+  (`Dispatch` event on Sentrix Mailbox, `Process` event on Sepolia Mailbox,
+  `Transfer` events on both warp contracts). Operator manually relayed the
+  message — no log gaps reported.
+
+**New hardening shipped 2026-05-14:**
+
+- Added `watcher-rs/` Rust monitor crate — checks ISM type per route, NoopIsm
+  detection, MultisigIsm validator config, WSRX 1:1 invariant across collateral
+  + synthetic, RPC health, stuck messages.
+- Added `api-rs/` Rust HTTP status API — `/status`, `/routes`, `/messages`,
+  `/unsafe-config`, `/fresh-user-flow`, `/readiness`.
+- Added README 4-section split: current state / safety / production-readiness
+  checklist / mainnet beta recommendation.
+- Added MultisigIsm `.s.sol` deploy script (was doc-only previously).
+- Added fresh-user verify live-testnet script.
+- Added NoopIsm sanity-check test that fails CI if any non-demo deployment JSON
+  references NoopIsm without `unsafe_demo: true` flag.
+
+**Blockers before mainnet (unchanged from 2026-05-13 list):**
+
+1. MultisigIsm on-chain swap on warp-route contracts (operator-driven)
+2. Hyperlane validator + relayer agents running 24/7
+3. External audit
+4. LZ Labs real EID assignment
+5. Public faucet for SRX → ETH gas bootstrap
+6. Insurance / treasury policy
+
+**Recommended hardening order:** as already laid out in `multichain-roadmap.md`
+Phase 2 → Phase 3 → Phase 4. Watcher-rs + api-rs land Phase 2 monitoring
+infrastructure before Phase 3 token bridging expansion.

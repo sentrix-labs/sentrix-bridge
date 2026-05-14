@@ -5,7 +5,61 @@ Cross-chain bridge integration for Sentrix Chain. Two bridge protocols live in p
 - **Hyperlane v3** — message-passing + warp routes (token bridging). First working route: **Sentrix Testnet ↔ Sepolia**. Status: protocol layer verified, production security pending.
 - **LayerZero V2** — endpoint stack deployed on Sentrix Testnet, awaiting LayerZero Labs chain assignment + production DVN/Executor wiring.
 
-> **Safety status — TESTNET ONLY.** Both routes are demonstration deployments. The Hyperlane testnet route uses `NoopIsm` (no validation), so an attacker can forge any inbound message. Do **not** bridge value through this stack until the production security path lands. See [#3 — production MultisigIsm setup](https://github.com/sentrix-labs/sentrix-bridge/issues/3) and [#5 — re-verify user-entry path](https://github.com/sentrix-labs/sentrix-bridge/issues/5).
+Sentrix is a Rust L1 with full EVM compatibility (Solidity contracts execute via the Rust [revm](https://github.com/bluealloy/revm) 38 engine). Bridge contracts are standard EVM bytecode; bridge infra (watcher, status API) is Rust-first — see `watcher-rs/` + `api-rs/`.
+
+---
+
+## A. Current working state
+
+- Hyperlane v3 demo route Sentrix Testnet ↔ Sepolia: message + warp-route value bridge both verified 2026-05-12 (tx evidence below).
+- LayerZero V2 endpoint stack deployed on Sentrix Testnet, placeholder eid=40998 pending LZ Labs assignment.
+- WSRX9 wrap contracts deployed both nets: testnet `0x85d5E7694AF31C2Edd0a7e66b7c6c92C59fF949A`, mainnet `0x4693b113e523A196d9579333c4ab8358e2656553`.
+- `WSRX9.deposit{value:amount}()` reverified end-to-end after [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580) close (testnet h=3,787,000 + mainnet h=1,748,900). Fresh-user wrap path works on both nets.
+
+## B. Safety status — TESTNET ONLY
+
+> **Do not bridge real value through this stack today.**
+
+- All Hyperlane routes use `NoopIsm` (no signature verification — anyone can forge an inbound message). Production MultisigIsm rollout per [#3](https://github.com/sentrix-labs/sentrix-bridge/issues/3) is required first.
+- No mainnet bridge funds.
+- Manual relay only (no validator/relayer agents running 24/7).
+- LayerZero stack is on placeholder eid; cannot peer with real endpoints.
+- Production route requires MultisigIsm or stronger security on every warp contract (not just TestRecipient).
+
+`watcher-rs status --json` surfaces every route still on NoopIsm under `unsafe_flags`.
+
+## C. Production-readiness checklist
+
+Mainnet rollout is gated on completing all of these. Track via `api-rs /readiness`.
+
+- [ ] MultisigIsm deployed both sides (Sentrix + Sepolia)
+- [ ] Hyperlane validator agent running per validator host
+- [ ] Hyperlane relayer agent running 24/7
+- [ ] Fresh-user bridge path reverified post-MultisigIsm swap (`scripts/runbooks/fresh-user-verify.sh`)
+- [ ] EVM payable/value flow confirmed on chain — **DONE 2026-05-13** (#580 closed)
+- [ ] Watcher running (`watcher-rs/` healthchecks every N min)
+- [ ] Status API surfaced publicly (`api-rs/`)
+- [ ] External audit pass (firm TBD — Code4rena candidate)
+- [ ] Capped mainnet beta plan written (see Section D)
+- [ ] Emergency pause runbook ready
+- [ ] Public status page deployed
+
+## D. Mainnet beta recommendation
+
+When mainnet expansion happens — start small.
+
+- **One route only.** Sentrix Mainnet ↔ <pick one foreign mainnet>. No multi-destination day-1.
+- **One asset only.** wSRX (collateral path). HypNative deferred until WSRX path proves out under load.
+- **Strict per-tx cap.** Suggest 100 SRX equivalent.
+- **Strict daily cap.** Suggest 10,000 SRX equivalent.
+- **Public status monitoring.** `api-rs /status` polled by an external uptime check; status page links from website.
+- **Incident response runbook.** Pre-written halt steps + on-call rotation; test the runbook on testnet before mainnet flip.
+
+> Start with the smallest possible blast radius. Expand caps + assets + routes only after multi-week clean operation.
+
+---
+
+> **Issues:** [#3 — production MultisigIsm setup](https://github.com/sentrix-labs/sentrix-bridge/issues/3) · [#5 — re-verify user-entry path](https://github.com/sentrix-labs/sentrix-bridge/issues/5).
 
 ## Verified flows
 
@@ -127,6 +181,7 @@ Both `Dispatch` (Sentrix side) and `Handle` (Sepolia side) emit on the canonical
 | `deployments/*.json` | Per-network deployment metadata (addresses, tx hashes, deployer notes) |
 | `docs/` | Runbooks + LayerZero Labs application draft + multichain roadmap |
 | `subgraph/` | Source-of-truth subgraph for chain analytics (separate concern from bridge — kept here for org convenience) |
+| `watcher-rs/` | Bridge route monitor — read-only Rust watcher (NoopIsm / wSRX invariant / RPC health). See [`watcher-rs/README.md`](watcher-rs/README.md). |
 | `LayerZero-v2/` *(gitignored)* | Third-party clone — `github.com/LayerZero-Labs/LayerZero-v2` |
 | `lib/` *(gitignored)* | OZ v4 + forge-std clones for foundry remappings |
 
