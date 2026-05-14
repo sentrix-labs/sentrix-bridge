@@ -64,13 +64,14 @@ Hyperlane Warp Routes wrap an ERC-20 (or native token) as a synthetic on the des
 - **HypERC20Collateral** (source) ↔ **HypERC20** (destination): lock canonical token on source, mint synthetic on destination. Used when source has a real ERC-20.
 - **HypNative** (source) ↔ **HypERC20** (destination): same pattern but for native gas tokens. Used for SRX → wrapped-SRX.
 
+**Unblocked 2026-05-13** — [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580) closed. EVM value-transfer + gas-fix forks activated on testnet h=3,787,000 and mainnet h=1,748,900 (binary v2.2.11). `HypNative.transferRemote(...)` now functional on the native path; the WSRX wrap workaround remains as an alternative but is no longer required.
 **Blocked by [sentrix-labs/sentrix#580](https://github.com/sentrix-labs/sentrix/issues/580)** — Sentrix's EVM value-passing bug breaks `HypNative.transferRemote(...)` on broadcast. Workaround documented in the operator's bridge runbook: wrap SRX in a WSRX ERC-20 first, then bridge via `HypERC20Collateral`. Functional. But Phase 3 will properly land once #580 closes upstream.
 
 ## Phase 4 — Mainnet (gated on audit)
 
 Cannot proceed until:
 
-- [ ] sentrix-labs/sentrix#580 closed
+- [x] sentrix-labs/sentrix#580 closed (2026-05-13)
 - [ ] Phase 2 production-ISM live on testnet ≥ 7 days with no halt-class incidents
 - [ ] External audit pass (firm TBD — Code4rena contest is a candidate)
 - [ ] Public mainnet faucet for SRX→ETH gas bootstrap (so users have ETH to receive on the foreign side)
