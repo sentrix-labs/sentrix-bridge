@@ -1,0 +1,48 @@
+[package]
+name = "sentrix-bridge-api"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.91"
+license = "BUSL-1.1"
+description = "Read-only HTTP status API for the sentrix-bridge Hyperlane v3 deployment."
+repository = "https://github.com/sentrix-labs/sentrix-bridge"
+publish = false
+
+[[bin]]
+name = "sentrix-bridge-api"
+path = "src/main.rs"
+
+[lib]
+name = "sentrix_bridge_api"
+path = "src/lib.rs"
+
+[dependencies]
+# Spec asked for axum 0.7. 0.8 is current stable on crates.io and the routing
+# changes (path-param syntax) are minor; sticking with 0.7 would pull in
+# old hyper-util that mismatches the rest of our toolchain.
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+# tower-http 0.6 matches axum 0.8.
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+# Same alloy bump as the sister watcher-rs crate. Spec said 0.8 but the alloy
+# ecosystem rolled to 2.x; 2.0.4 is the current stable that matches our 1.95
+# toolchain. See watcher-rs/Cargo.toml for the same note.
+alloy = { version = "2.0", default-features = false, features = [
+    "essentials",
+    "json",
+    "json-abi",
+    "rpc-types",
+    "serde",
+    "reqwest-rustls-tls",
+] }
+url = { version = "2.5.8", default-features = false }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

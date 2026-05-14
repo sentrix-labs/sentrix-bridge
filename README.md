@@ -182,6 +182,7 @@ Both `Dispatch` (Sentrix side) and `Handle` (Sepolia side) emit on the canonical
 | `docs/` | Runbooks + LayerZero Labs application draft + multichain roadmap |
 | `subgraph/` | Source-of-truth subgraph for chain analytics (separate concern from bridge — kept here for org convenience) |
 | `watcher-rs/` | Bridge route monitor — read-only Rust watcher (NoopIsm / wSRX invariant / RPC health). See [`watcher-rs/README.md`](watcher-rs/README.md). |
+| `api-rs/` | Bridge status API — read-only HTTP endpoints: `/health`, `/status`, `/routes`, `/routes/:id`, `/messages`, `/messages/:id`, `/unsafe-config`, `/fresh-user-flow`, `/readiness`. See [`api-rs/README.md`](api-rs/README.md). Live at https://bridge-api.sentrixchain.com. |
 | `LayerZero-v2/` *(gitignored)* | Third-party clone — `github.com/LayerZero-Labs/LayerZero-v2` |
 | `lib/` *(gitignored)* | OZ v4 + forge-std clones for foundry remappings |
 
