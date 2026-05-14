@@ -96,7 +96,7 @@ Save the implementation address. Will be used in Step 4.
 ## Step 4 — Deploy FiatTokenProxy + initialize through proxy
 
 ```bash
-# Roles for initialization. Phase 1: 1-of-1 SentrixSafe (single-signer bootstrap).
+# Roles for initialization. Phase 1: SentrixSafe (currently 1-of-1).
 # Phase 3b+: multisig addresses. See SINGLE_SIG_BOOTSTRAP_POLICY.md.
 export FIATTOKEN_NAME="Bridged USDC (Sentrix)"
 export FIATTOKEN_SYMBOL=USDC.e

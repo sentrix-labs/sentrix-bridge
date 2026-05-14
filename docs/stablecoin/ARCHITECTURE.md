@@ -45,21 +45,21 @@ ETHEREUM SEPOLIA (testnet) / Ethereum mainnet (later)        SENTRIX 7120 / 7119
 
 | Role | Initial holder | Phase 4 (Circle handoff) |
 |---|---|---|
-| `admin` (proxy-level, AdminUpgradeabilityProxy) | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
-| `owner` (implementation-level) | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle via `transferUSDCRoles` |
-| `masterMinter` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Removed (Circle removes minters first, then takes owner) |
-| `pauser` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
-| `blacklister` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
-| `rescuer` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Transferred to Circle |
-| `minters` (configured) | Phase 1: 1-of-1 SentrixSafe (single-signer). Phase 2+: HypFiatToken contract address | Removed by partner before role transfer |
+| `admin` (proxy-level, AdminUpgradeabilityProxy) | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `owner` (implementation-level) | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Transferred to Circle via `transferUSDCRoles` |
+| `masterMinter` | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Removed (Circle removes minters first, then takes owner) |
+| `pauser` | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `blacklister` | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `rescuer` | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Transferred to Circle |
+| `minters` (configured) | Phase 1: SentrixSafe (currently 1-of-1). Phase 2+: HypFiatToken contract address | Removed by partner before role transfer |
 
 ### Source bridge (`SentrixUSDCSourceBridge`)
 
 | Role | Initial holder | Notes |
 |---|---|---|
-| `DEFAULT_ADMIN_ROLE` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Can grant/revoke all other roles |
-| `OPERATOR_ROLE` | Phase 1: 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+). Phase 2: Hyperlane handler contract | Calls `release` |
-| `PAUSER_ROLE` | 1-of-1 SentrixSafe (single-signer Phase 1-3a; threshold expansion at Phase 3b+) | Pauses bridging |
+| `DEFAULT_ADMIN_ROLE` | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Can grant/revoke all other roles |
+| `OPERATOR_ROLE` | Phase 1: SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+). Phase 2: Hyperlane handler contract | Calls `release` |
+| `PAUSER_ROLE` | SentrixSafe (currently 1-of-1; threshold expansion at Phase 3b+) | Pauses bridging |
 | `CIRCLE_BURN_ROLE` | EMPTY until Circle requests | Granted by admin at upgrade time to Circle-specified address |
 | `CIRCLE_ROLE_TRANSFER_ROLE` | EMPTY until Circle requests | Granted by admin at upgrade time to Circle-specified address |
 

@@ -99,7 +99,7 @@ review), the custom ERC20 path is wrong. We use Circle's contracts unmodified.
 Replace manual relayer with Hyperlane HypFiatToken on Sentrix side and a
 Hyperlane-driven source bridge. Source bridge stops accepting `release()`
 from operator EOA and instead accepts it only from the Hyperlane Mailbox
-after MultisigIsm validation. Operator-controlled 1-of-1 SentrixSafe still holds emergency pause and
+after MultisigIsm validation. SentrixSafe still holds emergency pause and
 upgrade authority (single-sig bootstrap policy continues through Phase 2).
 
 See `HYPERLANE_EVALUATION.md` for the integration analysis.

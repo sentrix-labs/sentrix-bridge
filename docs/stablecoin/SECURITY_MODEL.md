@@ -136,7 +136,7 @@ Severity scale:
 | | |
 |---|---|
 | Impact | If the source bridge's upgrade admin is compromised, attacker can replace the bridge implementation with malicious code, e.g. removing `release` access control or draining via a fake `burnLockedUSDC`. |
-| Mitigation on-chain | ERC1967Proxy upgrade authority lives on DEFAULT_ADMIN_ROLE. Phase 1: 1-of-1 SentrixSafe (single-signer). Phase 3b+: multisig. |
+| Mitigation on-chain | ERC1967Proxy upgrade authority lives on DEFAULT_ADMIN_ROLE. Phase 1: SentrixSafe (currently 1-of-1). Phase 3b+: multisig. |
 | Mitigation off-chain | Phase 1: admin EOA in cold storage (hardware wallet, used only for upgrades). Phase 3b: multisig with high threshold + hardware-wallet signers. Time-lock recommended for any upgrade (24-72h) regardless of phase. |
 | Status | Time-lock not in current scaffold. Add before mainnet (Phase 3a or 3b). |
 

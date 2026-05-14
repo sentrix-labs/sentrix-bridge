@@ -35,7 +35,7 @@ import {ICircleBridgedUSDCPausable} from "../interfaces/ICircleBridgedUSDCPausab
 ///         - Hyperlane integration is OUT (this is Phase 1 testnet — relayer-
 ///           driven). Phase 2 wires Hyperlane Mailbox + ISM for the cross-
 ///           chain message verification. Until then, `release` is gated by
-///           OPERATOR_ROLE (1-of-1 SentrixSafe in Phase 1 single-signer bootstrap;
+///           OPERATOR_ROLE (SentrixSafe in Phase 1 (currently 1-of-1);
 ///           multisig recommended once co-signers recruited at Phase 3b+).
 ///         - The mint-allowance / cap is NOT enforced here — it lives on the
 ///           destination FiatToken via masterMinter. This contract is supply-
@@ -61,12 +61,12 @@ contract SentrixUSDCSourceBridge is
     //                              ROLES
     // ----------------------------------------------------------------- //
 
-    /// @notice Can pause/unpause bridging. Phase 1: 1-of-1 SentrixSafe (single-signer). Phase 3b+:
+    /// @notice Can pause/unpause bridging. Phase 1: SentrixSafe (currently 1-of-1). Phase 3b+:
     ///         multisig recommended. See docs/stablecoin/SINGLE_SIG_BOOTSTRAP_POLICY.md.
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /// @notice Can release locked USDC on verified Sentrix burn.
-    ///         PHASE 1: held by 1-of-1 SentrixSafe (single-signer bootstrap).
+    ///         PHASE 1: held by SentrixSafe (currently 1-of-1).
     ///         PHASE 2: held by Hyperlane message handler.
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -131,7 +131,7 @@ contract SentrixUSDCSourceBridge is
     /// @param _usdc            The real USDC ERC20 contract on this chain.
     /// @param _sentrixChainId  Destination chain id (7120 testnet / 7119 mainnet).
     /// @param _admin           DEFAULT_ADMIN_ROLE holder (operator EOA for Phase 1; multisig at Phase 3b+).
-    /// @param _operator        OPERATOR_ROLE holder (Phase 1: 1-of-1 SentrixSafe (single-signer); Phase 2: Hyperlane handler).
+    /// @param _operator        OPERATOR_ROLE holder (Phase 1: SentrixSafe (currently 1-of-1); Phase 2: Hyperlane handler).
     /// @param _pauser          PAUSER_ROLE holder (operator EOA for Phase 1; multisig recommended at scale).
     ///
     /// @dev Circle's burn and role-transfer roles are NOT granted here. They
