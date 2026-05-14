@@ -17,18 +17,26 @@ use alloy::providers::Provider;
 use alloy::rpc::types::Filter;
 use alloy::sol;
 use alloy::sol_types::SolEvent;
-use anyhow::Result;
 use std::collections::HashSet;
 
 use super::parse_address;
 use crate::config::RuntimeConfig;
-use crate::report::StuckMessage;
+use crate::report::{StuckCheck, StuckMessage};
 
 sol! {
     event DispatchId(bytes32 messageId);
     event ProcessId(bytes32 messageId);
 }
 
+/// Scan for stuck messages. Returns:
+///
+/// * `Scanned { messages }` — both sides answered; the list is the
+///   final verdict (possibly empty)
+/// * `Skipped { reason }`   — at least one prerequisite RPC failed; we
+///   intentionally do NOT guess. Pre-fix, a destination
+///   `eth_blockNumber` failure defaulted dest_head to 0, which then
+///   marked every recent dispatch as stuck — a false alarm operators
+///   chased multiple times.
 pub async fn scan<S, T>(
     cfg: &RuntimeConfig,
     origin_chain: u64,
@@ -37,15 +45,36 @@ pub async fn scan<S, T>(
     destination_mailbox: &str,
     origin_provider: S,
     destination_provider: T,
-) -> Result<Vec<StuckMessage>>
+) -> StuckCheck
 where
     S: Provider<Ethereum> + Clone + 'static,
     T: Provider<Ethereum> + Clone + 'static,
 {
-    let origin_addr = parse_address(origin_mailbox)?;
-    let dest_addr = parse_address(destination_mailbox)?;
+    let origin_addr = match parse_address(origin_mailbox) {
+        Ok(a) => a,
+        Err(e) => {
+            return StuckCheck::Skipped {
+                reason: format!("invalid origin mailbox address: {e}"),
+            };
+        }
+    };
+    let dest_addr = match parse_address(destination_mailbox) {
+        Ok(a) => a,
+        Err(e) => {
+            return StuckCheck::Skipped {
+                reason: format!("invalid destination mailbox address: {e}"),
+            };
+        }
+    };
 
-    let origin_head = origin_provider.get_block_number().await?;
+    let origin_head = match origin_provider.get_block_number().await {
+        Ok(h) => h,
+        Err(e) => {
+            return StuckCheck::Skipped {
+                reason: format!("origin eth_blockNumber failed: {e}"),
+            };
+        }
+    };
     let from_block = origin_head.saturating_sub(cfg.stuck_lookback_blocks);
 
     let dispatch_filter = Filter::new()
@@ -57,16 +86,31 @@ where
     let dispatch_logs = match origin_provider.get_logs(&dispatch_filter).await {
         Ok(l) => l,
         Err(e) => {
+            // Public RPCs commonly cap eth_getLogs range; treat that as
+            // a skip with reason rather than a "no stuck messages" fact.
             tracing::warn!("origin getLogs failed (provider likely caps range): {e}");
-            return Ok(Vec::new());
+            return StuckCheck::Skipped {
+                reason: format!("origin getLogs failed: {e}"),
+            };
         }
     };
 
     if dispatch_logs.is_empty() {
-        return Ok(Vec::new());
+        return StuckCheck::Scanned { messages: Vec::new() };
     }
 
-    let dest_head = destination_provider.get_block_number().await.unwrap_or(0);
+    // Destination block height is required to even know how far back to
+    // look for ProcessId logs. If the destination RPC is down we cannot
+    // tell stuck from in-flight — skip with reason.
+    let dest_head = match destination_provider.get_block_number().await {
+        Ok(h) => h,
+        Err(e) => {
+            tracing::warn!("destination eth_blockNumber failed: {e}");
+            return StuckCheck::Skipped {
+                reason: format!("destination eth_blockNumber failed: {e}"),
+            };
+        }
+    };
     let dest_filter = Filter::new()
         .address(dest_addr)
         .from_block(dest_head.saturating_sub(cfg.stuck_lookback_blocks))
@@ -81,7 +125,9 @@ where
         Err(e) => {
             tracing::warn!("destination getLogs failed: {e}");
             // Without destination data we can't decide what's stuck.
-            return Ok(Vec::new());
+            return StuckCheck::Skipped {
+                reason: format!("destination getLogs failed: {e}"),
+            };
         }
     };
 
@@ -113,7 +159,7 @@ where
         });
     }
 
-    Ok(stuck)
+    StuckCheck::Scanned { messages: stuck }
 }
 
 #[cfg(test)]

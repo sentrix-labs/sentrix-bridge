@@ -3,7 +3,8 @@
 
 use chrono::Utc;
 use sentrix_bridge_watcher::report::{
-    MailboxReport, MultisigInfo, Report, RouteReport, RpcReport, StuckMessage, WsrxInvariant,
+    InvariantStatus, MailboxReport, MultisigInfo, Report, RouteReport, RpcReport, StuckCheck,
+    StuckMessage, WsrxInvariant,
 };
 
 #[test]
@@ -57,6 +58,7 @@ fn report_serializes_with_expected_top_level_keys() {
             wsrx_locked_in_collateral: "1000000000000000".into(),
             hyperc20_total_supply_sepolia: "1000000000000000".into(),
             drift_wei: "0".into(),
+            status: InvariantStatus::Ok,
             ok: true,
             error: None,
         }),
@@ -68,6 +70,16 @@ fn report_serializes_with_expected_top_level_keys() {
             origin_block: 3_787_000,
             age_blocks: 100,
         }],
+        stuck: StuckCheck::Scanned {
+            messages: vec![StuckMessage {
+                origin_chain: 7120,
+                destination_chain: 11155111,
+                message_id: "0xabc".into(),
+                origin_tx: "0xdef".into(),
+                origin_block: 3_787_000,
+                age_blocks: 100,
+            }],
+        },
         warnings: vec!["warp-wsrx-sentrix-to-sepolia: NoopIsm-on-warp-route-unsafe".into()],
     };
 
@@ -82,10 +94,15 @@ fn report_serializes_with_expected_top_level_keys() {
         "routes",
         "wsrx_invariant",
         "stuck_messages",
+        "stuck",
         "warnings",
     ] {
         assert!(obj.contains_key(key), "missing top-level key: {key}");
     }
+    // `stuck` is a tagged enum: { "kind": "scanned"|"skipped", ... }.
+    let stuck = json["stuck"].as_object().unwrap();
+    assert_eq!(stuck["kind"], "scanned");
+    assert!(stuck.contains_key("messages"));
 
     let route = json["routes"][0].as_object().unwrap();
     for key in [
@@ -106,7 +123,9 @@ fn report_serializes_with_expected_top_level_keys() {
         "hyperc20_total_supply_sepolia",
         "drift_wei",
         "ok",
+        "status",
     ] {
         assert!(inv.contains_key(key), "invariant missing key: {key}");
     }
+    assert_eq!(inv["status"], "ok");
 }

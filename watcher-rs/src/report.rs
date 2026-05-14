@@ -16,7 +16,14 @@ pub struct Report {
     pub mailboxes: Vec<MailboxReport>,
     pub routes: Vec<RouteReport>,
     pub wsrx_invariant: Option<WsrxInvariant>,
+    /// Flat list of definitely-stuck messages. Empty when the scan ran
+    /// and saw nothing OR when the scan was skipped — use `stuck.kind`
+    /// to disambiguate.
     pub stuck_messages: Vec<StuckMessage>,
+    /// Three-way scan result: scanned vs skipped (with reason). New in
+    /// PR #19; clients that only care about the count can keep reading
+    /// `stuck_messages`.
+    pub stuck: StuckCheck,
     /// Top-level warnings — anything that should page an operator. Empty
     /// vector means everything we could check passed.
     pub warnings: Vec<String>,
@@ -70,6 +77,24 @@ pub struct MultisigInfo {
     pub validators: Vec<String>,
 }
 
+/// Three-way result for the wSRX invariant:
+///
+/// * `Ok`      — both sides fetched, numbers match
+/// * `Drift`   — both sides fetched, numbers DON'T match (real alarm)
+/// * `Unknown` — at least one RPC/ABI/address call failed; we cannot
+///   conclude either way
+///
+/// Pre-fix the watcher collapsed `Drift` and `Unknown` into a single
+/// "drift" warning. That misled operators into chasing imaginary drift
+/// during Sepolia public-RPC outages. PR #19 split them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum InvariantStatus {
+    Ok,
+    Drift,
+    Unknown,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WsrxInvariant {
     pub wsrx_total_supply_sentrix: String,
@@ -78,6 +103,11 @@ pub struct WsrxInvariant {
     /// `wsrx_locked_in_collateral - hyperc20_total_supply_sepolia`. Stored as
     /// a signed decimal string so JS consumers don't truncate u256.
     pub drift_wei: String,
+    /// Three-way: ok / drift / unknown. New in PR #19; downstream
+    /// `api-rs` should branch on this instead of bare `ok`.
+    pub status: InvariantStatus,
+    /// Retained for backward-compat with downstream JSON consumers
+    /// (`api-rs`, alerting). True iff `status == Ok`.
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -91,4 +121,44 @@ pub struct StuckMessage {
     pub origin_tx: String,
     pub origin_block: u64,
     pub age_blocks: u64,
+}
+
+/// Result of the stuck-message scan. Pre-fix the watcher swallowed
+/// destination-RPC failures, defaulted dest_head to 0, and then
+/// classified everything as stuck. Now the failure surfaces as
+/// `Skipped { reason }` so an alerting consumer can distinguish "no
+/// stuck messages" from "we couldn't tell".
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum StuckCheck {
+    /// The scan completed; `messages` is the (possibly empty) list of
+    /// dispatched-but-not-processed messages older than the heuristic
+    /// threshold.
+    Scanned { messages: Vec<StuckMessage> },
+    /// The scan was skipped because at least one prerequisite RPC call
+    /// failed. We don't know if anything is stuck — operator should
+    /// re-run after the upstream provider recovers.
+    Skipped { reason: String },
+}
+
+impl StuckCheck {
+    /// View the messages list, returning an empty slice when the scan
+    /// was skipped. Convenience for callers that just want "did we see
+    /// anything definitely stuck".
+    pub fn messages(&self) -> &[StuckMessage] {
+        match self {
+            StuckCheck::Scanned { messages } => messages,
+            StuckCheck::Skipped { .. } => &[],
+        }
+    }
+
+    pub fn is_skipped(&self) -> bool {
+        matches!(self, StuckCheck::Skipped { .. })
+    }
+}
+
+impl Default for StuckCheck {
+    fn default() -> Self {
+        StuckCheck::Scanned { messages: Vec::new() }
+    }
 }

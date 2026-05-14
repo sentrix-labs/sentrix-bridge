@@ -18,7 +18,7 @@ use alloy::providers::Provider;
 
 use super::{parse_address, IErc20Lite};
 use crate::config::RuntimeConfig;
-use crate::report::WsrxInvariant;
+use crate::report::{InvariantStatus, WsrxInvariant};
 
 #[allow(clippy::too_many_arguments)]
 pub async fn check_invariant<S, T>(
@@ -38,6 +38,7 @@ where
         wsrx_locked_in_collateral: "0".to_string(),
         hyperc20_total_supply_sepolia: "0".to_string(),
         drift_wei: "0".to_string(),
+        status: InvariantStatus::Unknown,
         ok: false,
         error: None,
     };
@@ -60,6 +61,7 @@ where
     let wsrx_total = match wsrx.totalSupply().call().await {
         Ok(v) => v,
         Err(e) => {
+            // Couldn't fetch — leave status as Unknown, surface why.
             report.error = Some(format!("wsrx.totalSupply: {e}"));
             return report;
         }
@@ -83,10 +85,18 @@ where
     report.wsrx_locked_in_collateral = collateral_balance.to_string();
     report.hyperc20_total_supply_sepolia = sepolia_supply.to_string();
     report.drift_wei = signed_drift(collateral_balance, sepolia_supply);
-    // Two zeros == "ok" technically, but the bridge has known traffic so
+    // Both numbers came back. Now we can call Ok vs Drift.
+    //
+    // Two zeros is technically "equal" but the bridge has known traffic so
     // 0/0 is overwhelmingly an RPC-call-returned-empty-data symptom on the
-    // collateral side. Mark as DRIFT so the operator looks closer.
-    report.ok = collateral_balance == sepolia_supply && collateral_balance != U256::ZERO;
+    // collateral side — treat it as Drift so the operator looks closer.
+    if collateral_balance == sepolia_supply && collateral_balance != U256::ZERO {
+        report.status = InvariantStatus::Ok;
+        report.ok = true;
+    } else {
+        report.status = InvariantStatus::Drift;
+        report.ok = false;
+    }
     report
 }
 

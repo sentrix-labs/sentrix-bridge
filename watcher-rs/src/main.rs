@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
-use sentrix_bridge_watcher::checks::build_report;
+use sentrix_bridge_watcher::checks::{build_balance_only, build_noopism_only, build_report};
 use sentrix_bridge_watcher::config::{Network, RuntimeConfig};
 use sentrix_bridge_watcher::report::Report;
 
@@ -79,34 +79,30 @@ async fn main() -> Result<()> {
         cli.deployments_dir,
     );
 
-    let report = build_report(&cfg).await?;
-
+    // Each subcommand only runs the checks it needs. `Status` runs the
+    // full pipeline; the focused subcommands skip unrelated RPC calls
+    // (RPC-liveness, stuck-scan, mailbox inspection) so they're cheap
+    // enough for CI cron to fire every minute without blowing the
+    // public-RPC quota.
     match cli.command {
-        Command::Status { json } => emit(&report, json),
+        Command::Status { json } => {
+            let report = build_report(&cfg).await?;
+            emit(&report, json);
+        }
         Command::CheckNoopism { json } => {
-            let routes = serde_json::json!({
-                "timestamp": report.timestamp,
-                "routes": report.routes,
-                "warnings": report
-                    .warnings
-                    .iter()
-                    .filter(|w| w.contains("NoopIsm"))
-                    .collect::<Vec<_>>(),
-            });
+            let routes = build_noopism_only(&cfg).await?;
             if json {
                 println!("{}", serde_json::to_string_pretty(&routes)?);
             } else {
-                pretty_routes(&report);
+                pretty_noopism_only(&routes);
             }
         }
         Command::CheckBalance { json } => {
+            let inv = build_balance_only(&cfg).await?;
             if json {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&report.wsrx_invariant)?
-                );
+                println!("{}", serde_json::to_string_pretty(&inv)?);
             } else {
-                pretty_balance(&report);
+                pretty_balance_only(inv.as_ref());
             }
         }
     }
@@ -153,15 +149,23 @@ fn pretty(report: &Report) {
     pretty_routes(report);
     println!();
     pretty_balance(report);
-    if !report.stuck_messages.is_empty() {
-        println!();
-        println!("Stuck messages (origin -> destination):");
-        for s in &report.stuck_messages {
-            println!(
-                "  {} -> {}  age={}b  msg={}",
-                s.origin_chain, s.destination_chain, s.age_blocks, s.message_id
-            );
+    use sentrix_bridge_watcher::report::StuckCheck;
+    match &report.stuck {
+        StuckCheck::Scanned { messages } if !messages.is_empty() => {
+            println!();
+            println!("Stuck messages (origin -> destination):");
+            for s in messages {
+                println!(
+                    "  {} -> {}  age={}b  msg={}",
+                    s.origin_chain, s.destination_chain, s.age_blocks, s.message_id
+                );
+            }
         }
+        StuckCheck::Skipped { reason } => {
+            println!();
+            println!("Stuck messages: SKIPPED ({reason})");
+        }
+        _ => {}
     }
     if !report.warnings.is_empty() {
         println!();
@@ -207,9 +211,18 @@ fn pretty_routes(report: &Report) {
 }
 
 fn pretty_balance(report: &Report) {
-    match &report.wsrx_invariant {
+    pretty_balance_only(report.wsrx_invariant.as_ref());
+}
+
+fn pretty_balance_only(inv: Option<&sentrix_bridge_watcher::report::WsrxInvariant>) {
+    use sentrix_bridge_watcher::report::InvariantStatus;
+    match inv {
         Some(inv) => {
-            let status = if inv.ok { "ok" } else { "DRIFT" };
+            let status = match inv.status {
+                InvariantStatus::Ok => "ok",
+                InvariantStatus::Drift => "DRIFT",
+                InvariantStatus::Unknown => "UNKNOWN",
+            };
             println!(
                 "wSRX invariant [{}]  collateral={}  hyperc20_sepolia={}  drift={}",
                 status, inv.wsrx_locked_in_collateral, inv.hyperc20_total_supply_sepolia, inv.drift_wei
@@ -219,5 +232,28 @@ fn pretty_balance(report: &Report) {
             }
         }
         None => println!("wSRX invariant: not checked (warp deployment file missing)"),
+    }
+}
+
+fn pretty_noopism_only(routes: &[sentrix_bridge_watcher::report::RouteReport]) {
+    println!("Routes (noopism check):");
+    for r in routes {
+        let flag_str = if r.unsafe_flags.is_empty() {
+            "ok".to_string()
+        } else {
+            r.unsafe_flags.join(",")
+        };
+        println!(
+            "  {} ({} -> {})  ism={}  type={}  [{}]",
+            r.id,
+            r.source_chain,
+            r.destination_chain,
+            r.ism_address.clone().unwrap_or_default(),
+            r.ism_type,
+            flag_str
+        );
+        if let Some(e) = &r.error {
+            println!("    error: {e}");
+        }
     }
 }

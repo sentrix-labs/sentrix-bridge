@@ -16,18 +16,41 @@ use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::path::Path;
 use std::str::FromStr;
+use std::time::Duration;
 
 use crate::config::RuntimeConfig;
-use crate::report::{MailboxReport, Report, RouteReport};
+use crate::report::{InvariantStatus, MailboxReport, Report, RouteReport};
+
+/// Hard cap on every RPC round-trip. Public Sepolia nodes occasionally
+/// hang for minutes; without a timeout the entire watcher run blocks and
+/// the api-rs `/status` endpoint stops returning. 10s is comfortably
+/// above any healthy provider's p99 and short enough to fit inside an
+/// alerting cycle.
+pub const RPC_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Build a reqwest client with the watcher's standard timeouts. We use
+/// alloy's re-exported reqwest crate (`alloy::transports::http::reqwest`)
+/// so the type matches what `ProviderBuilder::connect_reqwest` expects —
+/// adding a top-level `reqwest = "0.12"` dep would compile a separate
+/// reqwest version and `connect_reqwest` would refuse it.
+pub fn http_client() -> Result<alloy::transports::http::reqwest::Client> {
+    alloy::transports::http::reqwest::Client::builder()
+        .timeout(RPC_TIMEOUT)
+        .connect_timeout(RPC_TIMEOUT)
+        .build()
+        .context("build reqwest client with timeout")
+}
 
 // Build a minimal HTTP provider. We use `DynProvider` so the same handle
 // type flows through every check helper without leaking an enormous generic
-// chain.
+// chain. The provider is wired through a reqwest client with an explicit
+// timeout (see `RPC_TIMEOUT`) so a stalled RPC can't hang the run.
 pub fn http_provider(rpc_url: &str) -> Result<DynProvider<Ethereum>> {
     let url = rpc_url
         .parse()
         .with_context(|| format!("invalid RPC URL: {rpc_url}"))?;
-    let provider = ProviderBuilder::new().connect_http(url);
+    let client = http_client()?;
+    let provider = ProviderBuilder::new().connect_reqwest(client, url);
     Ok(provider.erased())
 }
 
@@ -238,6 +261,37 @@ pub fn classify_ism(actual: Address, known_noop_isms: &[Address]) -> (String, Ve
     }
 }
 
+/// Load a deployments JSON and, on failure, log a WARN + remember the
+/// reason in `warnings` so the report doesn't go out clean while we're
+/// secretly skipping every route. Returns `None` only when the file
+/// genuinely couldn't be loaded.
+fn load_deployment_or_warn<T, F>(
+    path: &Path,
+    label: &str,
+    loader: F,
+    warnings: &mut Vec<String>,
+) -> Option<T>
+where
+    F: FnOnce(&Path) -> Result<T>,
+{
+    match loader(path) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            // Chain the anyhow context (`read X` / `parse X`) into one
+            // line so operators see WHY, not just that the file was
+            // missing.
+            let detail = format!("{e:#}");
+            tracing::warn!(target: "watcher", "load {label} ({}) failed: {detail}", path.display());
+            warnings.push(format!(
+                "deployment file {} ({}) load failed: {detail}",
+                label,
+                path.display()
+            ));
+            None
+        }
+    }
+}
+
 /// Stitch together the full `Report`. Each check is best-effort: a single
 /// RPC fault yields a populated `error` field, never a panic.
 pub async fn build_report(cfg: &RuntimeConfig) -> Result<Report> {
@@ -250,9 +304,28 @@ pub async fn build_report(cfg: &RuntimeConfig) -> Result<Report> {
     let sepolia_path = cfg.deployments_path("hyperlane-sepolia.json");
     let warp_path = cfg.deployments_path("hyperlane-warp-route.json");
 
-    let testnet = load_hyperlane_testnet(&testnet_path).ok();
-    let sepolia = load_hyperlane_sepolia(&sepolia_path).ok();
-    let warp = load_warp_route(&warp_path).ok();
+    // Collect warnings up-front so deployment-load failures surface in
+    // the final report instead of being silently dropped via `.ok()`.
+    let mut warnings: Vec<String> = Vec::new();
+
+    let testnet = load_deployment_or_warn(
+        &testnet_path,
+        "hyperlane-testnet.json",
+        load_hyperlane_testnet,
+        &mut warnings,
+    );
+    let sepolia = load_deployment_or_warn(
+        &sepolia_path,
+        "hyperlane-sepolia.json",
+        load_hyperlane_sepolia,
+        &mut warnings,
+    );
+    let warp = load_deployment_or_warn(
+        &warp_path,
+        "hyperlane-warp-route.json",
+        load_warp_route,
+        &mut warnings,
+    );
 
     let sentrix_rpc = rpc::probe(&cfg.sentrix_rpc, sentrix_provider.clone()).await;
     let sepolia_rpc = rpc::probe(&cfg.sepolia_rpc, sepolia_provider.clone()).await;
@@ -284,7 +357,8 @@ pub async fn build_report(cfg: &RuntimeConfig) -> Result<Report> {
     // ---- Routes ----
 
     let mut routes: Vec<RouteReport> = Vec::new();
-    let mut warnings: Vec<String> = Vec::new();
+    // `warnings` was already initialized above so deployment-load failures
+    // could be appended; keep accumulating into the same vec here.
 
     // Collect known NoopIsm addresses for ISM classification.
     let mut noop_isms: Vec<Address> = Vec::new();
@@ -380,35 +454,55 @@ pub async fn build_report(cfg: &RuntimeConfig) -> Result<Report> {
         None
     };
     if let Some(inv) = wsrx_invariant.as_ref() {
-        if !inv.ok {
-            warnings.push(format!(
+        // Only emit the "drift" warning when the check actually got both
+        // numbers and they disagreed. RPC/ABI failures land in
+        // `Unknown` and surface as a separate "could not check" warning
+        // so operators don't get paged about imaginary drift during a
+        // public Sepolia outage.
+        match inv.status {
+            InvariantStatus::Ok => {}
+            InvariantStatus::Drift => warnings.push(format!(
                 "wSRX invariant drift: collateral={} hyperc20={} drift={}",
                 inv.wsrx_locked_in_collateral, inv.hyperc20_total_supply_sepolia, inv.drift_wei
-            ));
+            )),
+            InvariantStatus::Unknown => warnings.push(format!(
+                "wSRX invariant could not be evaluated: {}",
+                inv.error.as_deref().unwrap_or("unknown reason")
+            )),
         }
     }
 
-    // ---- Stuck-message scan (best effort; skipped silently on RPC error)
+    // ---- Stuck-message scan (best effort; skip + reason on RPC error)
 
-    let stuck_messages = match (testnet.as_ref(), sepolia.as_ref()) {
-        (Some(t), Some(s)) => stuck::scan(
-            cfg,
-            t.chain_id,
-            &t.contracts.mailbox.address,
-            s.chain_id,
-            &s.pre_deployed.mailbox,
-            sentrix_provider.clone(),
-            sepolia_provider.clone(),
-        )
-        .await
-        .unwrap_or_default(),
-        _ => Vec::new(),
+    let stuck = match (testnet.as_ref(), sepolia.as_ref()) {
+        (Some(t), Some(s)) => {
+            stuck::scan(
+                cfg,
+                t.chain_id,
+                &t.contracts.mailbox.address,
+                s.chain_id,
+                &s.pre_deployed.mailbox,
+                sentrix_provider.clone(),
+                sepolia_provider.clone(),
+            )
+            .await
+        }
+        _ => crate::report::StuckCheck::Skipped {
+            reason: "deployments JSON missing testnet or sepolia mailbox".into(),
+        },
     };
-    if !stuck_messages.is_empty() {
-        warnings.push(format!(
-            "{} dispatched messages with no matching destination process",
-            stuck_messages.len()
-        ));
+    let stuck_messages: Vec<_> = stuck.messages().to_vec();
+    match &stuck {
+        crate::report::StuckCheck::Scanned { messages } if !messages.is_empty() => {
+            warnings.push(format!(
+                "{} dispatched messages with no matching destination process",
+                messages.len()
+            ));
+        }
+        crate::report::StuckCheck::Skipped { reason } => {
+            warnings.push(format!("stuck-message scan skipped: {reason}"));
+        }
+        _ => {}
     }
 
     Ok(Report {
@@ -420,6 +514,108 @@ pub async fn build_report(cfg: &RuntimeConfig) -> Result<Report> {
         routes,
         wsrx_invariant,
         stuck_messages,
+        stuck,
         warnings,
     })
+}
+
+/// Run ONLY the NoopIsm warp-route audit. Skips RPC liveness, mailbox
+/// inspection, the wSRX invariant, and the stuck-message scan. Use when
+/// the operator wants a tight low-quota probe (e.g. cron every minute)
+/// or in CI where the full pipeline isn't needed.
+pub async fn build_noopism_only(cfg: &RuntimeConfig) -> Result<Vec<RouteReport>> {
+    let sentrix_provider = http_provider(&cfg.sentrix_rpc)?;
+    let sepolia_provider = http_provider(&cfg.sepolia_rpc)?;
+
+    let testnet_path = cfg.deployments_path("hyperlane-testnet.json");
+    let sepolia_path = cfg.deployments_path("hyperlane-sepolia.json");
+    let warp_path = cfg.deployments_path("hyperlane-warp-route.json");
+
+    // We don't surface load warnings here — the focused command's caller
+    // gets stdout JSON, and a failed load means an empty routes vec.
+    // The full `status` command is the one that builds the warnings list.
+    let testnet = load_hyperlane_testnet(&testnet_path).ok();
+    let sepolia = load_hyperlane_sepolia(&sepolia_path).ok();
+    let Some(warp) = load_warp_route(&warp_path).ok() else {
+        return Ok(Vec::new());
+    };
+
+    let mut noop_isms: Vec<Address> = Vec::new();
+    if let Some(t) = testnet.as_ref() {
+        if let Ok(a) = parse_address(&t.contracts.noop_ism.address) {
+            noop_isms.push(a);
+        }
+    }
+    if let Some(s) = sepolia.as_ref() {
+        if let Ok(a) = parse_address(&s.our_deployments.noop_ism.address) {
+            noop_isms.push(a);
+        }
+    }
+
+    let mut routes = Vec::new();
+    routes.push(
+        noopism::scan_route(
+            "warp-wsrx-sentrix-to-sepolia",
+            warp.sentrix_testnet.chain_id,
+            warp.sepolia.chain_id,
+            &warp.working_path.components.hyperc20_collateral_sentrix,
+            &warp.working_path.components.hyperc20_sepolia,
+            warp.sentrix_testnet.unsafe_demo,
+            &noop_isms,
+            sentrix_provider.clone(),
+        )
+        .await,
+    );
+    routes.push(
+        noopism::scan_route(
+            "warp-wsrx-sepolia-to-sentrix",
+            warp.sepolia.chain_id,
+            warp.sentrix_testnet.chain_id,
+            &warp.working_path.components.hyperc20_sepolia,
+            &warp.working_path.components.hyperc20_collateral_sentrix,
+            warp.sepolia.unsafe_demo,
+            &noop_isms,
+            sepolia_provider.clone(),
+        )
+        .await,
+    );
+    if let Some(hyp_native) = warp.sentrix_testnet.hyp_native.as_ref() {
+        routes.push(
+            noopism::scan_route(
+                "hypnative-sentrix-to-sepolia",
+                warp.sentrix_testnet.chain_id,
+                warp.sepolia.chain_id,
+                hyp_native,
+                &warp.working_path.components.hyperc20_sepolia,
+                warp.sentrix_testnet.unsafe_demo,
+                &noop_isms,
+                sentrix_provider.clone(),
+            )
+            .await,
+        );
+    }
+    Ok(routes)
+}
+
+/// Run ONLY the wSRX 1:1 invariant. Skips RPC liveness, mailbox
+/// inspection, route classification, and the stuck-message scan.
+pub async fn build_balance_only(
+    cfg: &RuntimeConfig,
+) -> Result<Option<crate::report::WsrxInvariant>> {
+    let warp_path = cfg.deployments_path("hyperlane-warp-route.json");
+    let Some(warp) = load_warp_route(&warp_path).ok() else {
+        return Ok(None);
+    };
+    let sentrix_provider = http_provider(&cfg.sentrix_rpc)?;
+    let sepolia_provider = http_provider(&cfg.sepolia_rpc)?;
+    let inv = balance::check_invariant(
+        cfg,
+        &warp.working_path.components.wsrx_sentrix,
+        &warp.working_path.components.hyperc20_collateral_sentrix,
+        &warp.working_path.components.hyperc20_sepolia,
+        sentrix_provider,
+        sepolia_provider,
+    )
+    .await;
+    Ok(Some(inv))
 }

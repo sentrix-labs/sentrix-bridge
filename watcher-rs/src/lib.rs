@@ -23,4 +23,6 @@ pub mod config;
 pub mod report;
 
 pub use config::{Network, RuntimeConfig};
-pub use report::{Report, RouteReport, RpcReport, StuckMessage, WsrxInvariant};
+pub use report::{
+    InvariantStatus, Report, RouteReport, RpcReport, StuckCheck, StuckMessage, WsrxInvariant,
+};
