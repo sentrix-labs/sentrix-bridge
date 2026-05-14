@@ -1,4 +1,20 @@
-# Security notes — Sentrix Bridged USDC PoC
+# Security notes — sUSDC PoC (LEGACY, SUPERSEDED)
+
+> **This document is the risk register for the legacy `src/stablecoin/` sUSDC
+> PoC. It is SUPERSEDED by `SECURITY_MODEL.md` for the canonical Circle
+> Bridged USDC Standard path.**
+>
+> Most risks listed here translate directly to the Circle Standard build, but
+> the role layout differs (sUSDC = 4 custom roles; Circle = 6 standard roles)
+> and SECURITY_MODEL.md adds Circle-specific risks (R8 blacklister abuse,
+> R9 rescuer abuse, R11 Circle hook misuse, R15 mainnet↔testnet divergence,
+> R16 solc version drift, R17 compiler metadata, R21 single-signer
+> concentration).
+>
+> Keep this doc as a reference for the sUSDC PoC contracts. For canonical
+> Sentrix Bridged USDC risk register, read `SECURITY_MODEL.md`.
+
+---
 
 This document enumerates the security model of the `SourceChainVault` +
 `SentrixBridgedUSDC` system in `src/stablecoin/`. The model is intentionally
