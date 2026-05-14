@@ -1,0 +1,43 @@
+[package]
+name = "sentrix-bridge-watcher"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.91"
+license = "BUSL-1.1"
+description = "Read-only safety + route health monitor for the sentrix-bridge Hyperlane v3 deployment."
+repository = "https://github.com/sentrix-labs/sentrix-bridge"
+publish = false
+
+[[bin]]
+name = "sentrix-bridge-watcher"
+path = "src/main.rs"
+
+[lib]
+name = "sentrix_bridge_watcher"
+path = "src/lib.rs"
+
+[dependencies]
+# Spec asked for alloy 0.8, but the alloy ecosystem has since rolled major
+# versions. 2.0.4 is the current stable on crates.io (rust-version 1.91, we
+# build on 1.95). Sticking with 0.8 would force an old transport stack with
+# known reqwest TLS bugs, so we bump.
+alloy = { version = "2.0", default-features = false, features = [
+    "essentials",
+    "json",
+    "json-abi",
+    "rpc-types",
+    "serde",
+    "reqwest-rustls-tls",
+] }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+
+[dev-dependencies]
+serde_json = "1"

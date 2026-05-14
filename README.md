@@ -127,6 +127,7 @@ Both `Dispatch` (Sentrix side) and `Handle` (Sepolia side) emit on the canonical
 | `deployments/*.json` | Per-network deployment metadata (addresses, tx hashes, deployer notes) |
 | `docs/` | Runbooks + LayerZero Labs application draft + multichain roadmap |
 | `subgraph/` | Source-of-truth subgraph for chain analytics (separate concern from bridge — kept here for org convenience) |
+| `watcher-rs/` | Bridge route monitor — read-only Rust watcher (NoopIsm / wSRX invariant / RPC health). See [`watcher-rs/README.md`](watcher-rs/README.md). |
 | `LayerZero-v2/` *(gitignored)* | Third-party clone — `github.com/LayerZero-Labs/LayerZero-v2` |
 | `lib/` *(gitignored)* | OZ v4 + forge-std clones for foundry remappings |
 
