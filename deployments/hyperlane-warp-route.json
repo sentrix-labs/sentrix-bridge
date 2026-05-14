@@ -36,7 +36,9 @@
       "hook": "0x5058af72dD2235bcF934683126eab07849358F49 (PausableHook, value-accepting)",
       "owner": "0x2ffc302fcd8c0eeab2796b3c1d134f18e8237762",
       "scaleNumerator": 1,
-      "scaleDenominator": 1
+      "scaleDenominator": 1,
+      "unsafe_demo": true,
+      "unsafe_demo_reason": "NoopIsm — testnet/demo only. Production requires MultisigIsm swap per docs/multisigism-setup.md."
     },
     "enrolledRemote": {
       "11155111": "0x000000000000000000000000c4bde56bcaadfdbd6fbad685b65628f05994e5a8"
@@ -53,7 +55,9 @@
       "decimals": 18,
       "name": "Wrapped SRX",
       "symbol": "wSRX",
-      "initialSupply": 0
+      "initialSupply": 0,
+      "unsafe_demo": true,
+      "unsafe_demo_reason": "NoopIsm — testnet/demo only. Production requires MultisigIsm swap per docs/multisigism-setup.md."
     },
     "enrolledRemote": {
       "7120": "0x000000000000000000000000ea0bc1f6141e0b0604b9be19e260338973fd6dd7"

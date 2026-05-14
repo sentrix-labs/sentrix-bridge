@@ -1,0 +1,24 @@
+name: noopism-check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deployments/**"
+      - "scripts/check-noopism.sh"
+      - ".github/workflows/noopism-check.yml"
+  pull_request:
+    paths:
+      - "deployments/**"
+      - "scripts/check-noopism.sh"
+      - ".github/workflows/noopism-check.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install jq
+        run: sudo apt-get install -y jq
+      - name: Run NoopIsm sanity check
+        run: ./scripts/check-noopism.sh
