@@ -130,9 +130,9 @@ contract SentrixUSDCSourceBridge is
 
     /// @param _usdc            The real USDC ERC20 contract on this chain.
     /// @param _sentrixChainId  Destination chain id (7120 testnet / 7119 mainnet).
-    /// @param _admin           DEFAULT_ADMIN_ROLE holder (operator EOA for Phase 1; multisig at Phase 3b+).
+    /// @param _admin           DEFAULT_ADMIN_ROLE holder (SentrixSafe; currently 1-of-1, N-of-M at Phase 3b+).
     /// @param _operator        OPERATOR_ROLE holder (Phase 1: SentrixSafe (currently 1-of-1); Phase 2: Hyperlane handler).
-    /// @param _pauser          PAUSER_ROLE holder (operator EOA for Phase 1; multisig recommended at scale).
+    /// @param _pauser          PAUSER_ROLE holder (SentrixSafe; currently 1-of-1, N-of-M at Phase 3b+).
     ///
     /// @dev Circle's burn and role-transfer roles are NOT granted here. They
     ///      are granted by the admin near upgrade time at Circle's request.
@@ -197,7 +197,7 @@ contract SentrixUSDCSourceBridge is
     // ----------------------------------------------------------------- //
 
     /// @notice Release locked USDC to a user after a verified burn on Sentrix.
-    /// @dev    PHASE 1: gated by OPERATOR_ROLE (operator EOA, single-sig bootstrap).
+    /// @dev    PHASE 1: gated by OPERATOR_ROLE (SentrixSafe, currently 1-of-1).
     ///         PHASE 2: gated by Hyperlane Mailbox message handler.
     function release(uint256 withdrawalId, address recipient, uint256 amount)
         external
