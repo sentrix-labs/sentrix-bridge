@@ -1,0 +1,34 @@
+{
+  "name": "Base Sepolia USDC -> Sentrix Testnet sUSDC",
+  "status": "CONFIG_READY_NOT_DEPLOYED",
+  "environment": "testnet",
+  "source": {
+    "chain": "basesepolia",
+    "chainId": 84532,
+    "collateralToken": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "collateralDecimals": 6,
+    "router": "",
+    "mailbox": ""
+  },
+  "destination": {
+    "chain": "sentrixtestnet",
+    "chainId": 7120,
+    "syntheticTokenName": "Sentrix Bridged USDC",
+    "syntheticTokenSymbol": "sUSDC",
+    "syntheticDecimals": 6,
+    "router": "",
+    "mailbox": "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"
+  },
+  "security": {
+    "requiredIsm": "MultisigIsm or stronger",
+    "currentSentrixTestnetIsm": "0x28834AA535F3130f0F60571Ac7a813195aE56eC6",
+    "currentRisk": "NoopIsm is unsafe for value; testnet config validation only until replaced.",
+    "owner": "",
+    "sentrixSafe": ""
+  },
+  "caps": {
+    "perTxCap": "",
+    "dailyCap": "",
+    "totalMintCap": ""
+  }
+}

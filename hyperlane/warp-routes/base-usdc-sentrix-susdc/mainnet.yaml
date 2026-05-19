@@ -1,0 +1,28 @@
+# Hyperlane Warp Route deploy config.
+# Route: Base Mainnet native USDC collateral -> Sentrix Mainnet synthetic sUSDC.
+#
+# Mainnet deployment is blocked until the testnet route, MultisigIsm,
+# validators, relayers, monitoring, and cap controls are verified.
+---
+base:
+  type: collateral
+  token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+  name: "USD Coin"
+  symbol: "USDC"
+  decimals: 6
+  mailbox: ${BASE_MAINNET_MAILBOX}
+  interchainSecurityModule: ${BASE_MAINNET_ISM}
+  owner: ${OWNER_ADDRESS}
+  destinationGas:
+    "${SENTRIX_MAINNET_CHAIN_ID}": "125000"
+
+sentrixmainnet:
+  type: synthetic
+  name: "Sentrix Bridged USDC"
+  symbol: "sUSDC"
+  decimals: 6
+  mailbox: ${SENTRIX_MAINNET_MAILBOX}
+  interchainSecurityModule: ${SENTRIX_MAINNET_ISM}
+  owner: ${SENTRIX_SAFE_ADDRESS}
+  destinationGas:
+    "8453": "125000"

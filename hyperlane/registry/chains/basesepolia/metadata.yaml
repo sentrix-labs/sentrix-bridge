@@ -1,0 +1,22 @@
+name: basesepolia
+displayName: Base Sepolia
+displayNameShort: Base Sepolia
+chainId: 84532
+domainId: 84532
+protocol: ethereum
+isTestnet: true
+rpcUrls:
+  - http: ${BASE_SEPOLIA_RPC}
+nativeToken:
+  name: Ether
+  symbol: ETH
+  decimals: 18
+blockExplorers:
+  - name: BaseScan Sepolia
+    url: https://sepolia.basescan.org
+    apiUrl: https://api-sepolia.basescan.org/api
+    family: etherscan
+blocks:
+  confirmations: 6
+  reorgPeriod: 50
+  estimateBlockTime: 2

@@ -1,0 +1,33 @@
+{
+  "name": "Base Mainnet USDC -> Sentrix Mainnet sUSDC",
+  "status": "MAINNET_BLOCKED_NOT_DEPLOYED",
+  "environment": "mainnet",
+  "source": {
+    "chain": "base",
+    "chainId": 8453,
+    "collateralToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "collateralDecimals": 6,
+    "router": "",
+    "mailbox": ""
+  },
+  "destination": {
+    "chain": "sentrixmainnet",
+    "chainId": "",
+    "syntheticTokenName": "Sentrix Bridged USDC",
+    "syntheticTokenSymbol": "sUSDC",
+    "syntheticDecimals": 6,
+    "router": "",
+    "mailbox": ""
+  },
+  "security": {
+    "requiredIsm": "MultisigIsm or stronger",
+    "deploymentGate": "Do not deploy until testnet route is fully verified and audited.",
+    "owner": "",
+    "sentrixSafe": ""
+  },
+  "caps": {
+    "perTxCap": "",
+    "dailyCap": "",
+    "totalMintCap": ""
+  }
+}
