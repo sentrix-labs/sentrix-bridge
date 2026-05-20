@@ -1,0 +1,37 @@
+# Hyperlane MultisigISM plan for Base Sepolia USDC <-> Sentrix Testnet sUSDC.
+# This file is config/documentation only. It does not contain private keys and
+# does not imply deployment has happened.
+---
+route: "base-usdc-sentrix-susdc"
+environment: "testnet"
+type: "StaticMessageIdMultisigIsm"
+owner: "${SENTRIX_SAFE_ADDRESS}"
+noopIsmBlocked: "0x28834AA535F3130f0F60571Ac7a813195aE56eC6"
+
+chains:
+  sentrixtestnet:
+    domain: 7120
+    mailbox: "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"
+    factory: "${SENTRIX_TESTNET_MULTISIG_ISM_FACTORY}"
+    deployedIsm: "${SENTRIX_TESTNET_MULTISIG_ISM}"
+    validators: "${SENTRIX_TESTNET_MULTISIG_VALIDATORS}"
+    threshold: "${SENTRIX_TESTNET_MULTISIG_THRESHOLD}"
+    notes:
+      - "Factory must be reviewed/deployed on Sentrix Testnet before ISM deploy."
+      - "Validators sign messages whose origin is Base Sepolia and destination is Sentrix Testnet."
+  basesepolia:
+    domain: 84532
+    mailbox: "${BASE_SEPOLIA_MAILBOX}"
+    factory: "${BASE_SEPOLIA_MULTISIG_ISM_FACTORY}"
+    deployedIsm: "${BASE_SEPOLIA_MULTISIG_ISM}"
+    validators: "${BASE_SEPOLIA_MULTISIG_VALIDATORS}"
+    threshold: "${BASE_SEPOLIA_MULTISIG_THRESHOLD}"
+    notes:
+      - "Factory address is from the vendored Hyperlane registry for Base Sepolia."
+      - "Validators sign messages whose origin is Sentrix Testnet and destination is Base Sepolia."
+
+routeSecurity:
+  baseRouterOwner: "${OWNER_ADDRESS}"
+  sentrixRouterOwner: "${SENTRIX_SAFE_ADDRESS}"
+  requiredOwner: "0xc9D7a61D7C2F428F6A055916488041fD00532110"
+  requiredIsmKind: "MultisigIsm"

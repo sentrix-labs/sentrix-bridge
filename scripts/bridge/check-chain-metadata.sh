@@ -11,9 +11,11 @@ check_file() {
 
 if [[ "$ENVIRONMENT" == "testnet" ]]; then
   check_file "$ROOT_DIR/hyperlane/registry/chains/basesepolia/metadata.yaml"
+  check_file "$ROOT_DIR/hyperlane/registry/chains/basesepolia/addresses.yaml"
   check_file "$ROOT_DIR/hyperlane/registry/chains/sentrixtestnet/metadata.yaml"
   grep -q 'chainId: 84532' "$ROOT_DIR/hyperlane/registry/chains/basesepolia/metadata.yaml" || die "Base Sepolia chainId mismatch"
   grep -q 'chainId: 7120' "$ROOT_DIR/hyperlane/registry/chains/sentrixtestnet/metadata.yaml" || die "Sentrix Testnet chainId mismatch"
+  grep -q 'staticMessageIdMultisigIsmFactory: "0xfc6e546510dC9d76057F1f76633FCFfC188CB213"' "$ROOT_DIR/hyperlane/registry/chains/basesepolia/addresses.yaml" || die "Base Sepolia MultisigISM factory mismatch"
   grep -q 'mailbox: "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"' "$ROOT_DIR/hyperlane/registry/chains/sentrixtestnet/addresses.yaml" || die "Sentrix Testnet mailbox mismatch"
 else
   check_file "$ROOT_DIR/hyperlane/registry/chains/base/metadata.yaml"

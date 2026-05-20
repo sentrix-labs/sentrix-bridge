@@ -23,6 +23,43 @@ Existing Sentrix Testnet Hyperlane core:
 
 The current ISM is NoopIsm and is unsafe for value. It is acceptable for zero-value smoke tests only. Deploy MultisigIsm or stronger verification before any funded route test.
 
+## MultisigISM Testnet Plan
+
+Hyperlane MultisigISM verifies messages by requiring at least `threshold`
+validator signatures from a configured validator address set. A relayer can
+affect liveness by delaying delivery, but it cannot forge a valid message
+without enough validator signatures.
+
+For the Base Sepolia <-> Sentrix Testnet sUSDC route, both directions need an
+ISM:
+
+- Sentrix Testnet ISM verifies Base Sepolia -> Sentrix messages before minting sUSDC.
+- Base Sepolia ISM verifies Sentrix -> Base Sepolia messages before releasing locked USDC.
+
+Config lives in:
+
+- `hyperlane/isms/base-usdc-sentrix-susdc/testnet.yaml`
+
+The initial validator config is intentionally placeholder-only. Validator
+addresses are public signer addresses; validator private keys must live on the
+validator hosts or a secret manager and must never be committed. Current scripts
+support `1`-of-`1` testnet threshold if that is the approved temporary operator
+model, but mainnet needs a separate validator-set review.
+
+Base Sepolia has a Hyperlane registry StaticMessageIdMultisigIsm factory:
+
+- `0xfc6e546510dC9d76057F1f76633FCFfC188CB213`
+
+Sentrix Testnet does not yet have a reviewed factory address recorded in this
+repo. Fill `SENTRIX_TESTNET_MULTISIG_ISM_FACTORY` only after the factory is
+deployed or independently verified.
+
+Route owner/admin remains SentrixSafe:
+
+- `0xc9D7a61D7C2F428F6A055916488041fD00532110`
+
+The deployer EOA is only a runtime signer and must not remain final route owner.
+
 ## Config Files
 
 - `hyperlane/registry/chains/basesepolia/metadata.yaml`
@@ -40,22 +77,97 @@ The current ISM is NoopIsm and is unsafe for value. It is acceptable for zero-va
 Testnet first:
 
 1. Fill `.env` from `.env.example`.
-2. Run `scripts/bridge/check-env.sh testnet`.
+2. Run `scripts/bridge/check-env.sh testnet --check`.
 3. Run `scripts/bridge/check-chain-metadata.sh testnet`.
 4. Run `scripts/bridge/prepare-hyperlane-cli.sh` if no global Hyperlane CLI is available.
 5. Run `scripts/bridge/deploy-hyperlane-core-sentrix-testnet.sh --plan`.
-6. Replace NoopIsm with MultisigIsm or explicitly keep the route zero-value.
-7. Run `scripts/bridge/deploy-base-usdc-warp-testnet.sh --dry-run`.
-8. Deploy with `ALLOW_TESTNET_WARP_DEPLOY=1` only after review.
-9. Record router/token addresses in `deployments/base-usdc-susdc-testnet.json`.
-10. Run `scripts/bridge/verify-deployments.sh testnet`.
-11. Run both transfer direction tests manually with small amounts.
+6. Fill validator address placeholders in local `.env`; do not commit validator keys.
+7. Run `scripts/bridge/validate-multisig-ism-testnet.sh --check`.
+8. Deploy or verify MultisigISM addresses on Sentrix Testnet and Base Sepolia after review.
+9. Set `SENTRIX_TESTNET_ISM`, `BASE_SEPOLIA_ISM`, `SENTRIX_TESTNET_ISM_KIND=MultisigIsm`, and `BASE_SEPOLIA_ISM_KIND=MultisigIsm` in local `.env`.
+10. Run `scripts/bridge/check-env.sh testnet --deploy`; this blocks if Sentrix Testnet ISM is still NoopIsm.
+11. Run `scripts/bridge/deploy-base-usdc-warp-testnet.sh --dry-run`.
+12. Deploy with `ALLOW_TESTNET_WARP_DEPLOY=1` only after review.
+13. Record router/token/ISM addresses in `deployments/base-usdc-susdc-testnet.json`.
+14. Run `scripts/bridge/verify-ism-testnet.sh --check`.
+15. Run `scripts/bridge/verify-deployments.sh testnet`.
+16. Run both transfer direction tests manually with small amounts.
 
 The deploy script renders a temporary Hyperlane registry and deploys route id `sUSDC/basesepolia-sentrixtestnet`, which matches the registry-based Warp Route flow in recent Hyperlane CLI versions.
 
 Mainnet:
 
 - Mainnet deploy is blocked until the testnet checklist passes, a MultisigIsm is active, monitoring is live, cap controls are implemented, and ownership is multisig/SentrixSafe.
+
+## MultisigISM Commands
+
+Validate local config only:
+
+```bash
+set -a; source .env; set +a
+scripts/bridge/validate-multisig-ism-testnet.sh --check
+```
+
+Dry-run deploy command generation:
+
+```bash
+scripts/bridge/deploy-multisig-ism-testnet.sh sentrix --dry-run
+scripts/bridge/deploy-multisig-ism-testnet.sh basesepolia --dry-run
+```
+
+Deploy only after review:
+
+```bash
+ALLOW_TESTNET_MULTISIG_ISM_DEPLOY=1 scripts/bridge/deploy-multisig-ism-testnet.sh sentrix --deploy
+ALLOW_TESTNET_MULTISIG_ISM_DEPLOY=1 scripts/bridge/deploy-multisig-ism-testnet.sh basesepolia --deploy
+```
+
+If route contracts are already deployed and owned by SentrixSafe, prepare Safe
+calldata instead of sending from a deployer EOA:
+
+```bash
+ALLOW_TESTNET_ISM_SAFE_CALLDATA=1 scripts/bridge/prepare-ism-safe-calldata-testnet.sh sentrix <sentrix-router> <sentrix-multisig-ism>
+ALLOW_TESTNET_ISM_SAFE_CALLDATA=1 scripts/bridge/prepare-ism-safe-calldata-testnet.sh basesepolia <base-router> <base-multisig-ism>
+```
+
+Verify after route deployment/configuration:
+
+```bash
+scripts/bridge/verify-ism-testnet.sh --check
+```
+
+## Hard Blockers Before Funded Bridge Or Mainnet
+
+Do not run funded bridge tests, real USDC tests, or mainnet deployment until all blockers are closed:
+
+- Replace NoopIsm with MultisigIsm or a production-grade ISM.
+- Run relayer infrastructure 24/7 with alerting.
+- Run validator/ISM agents if the selected ISM requires them.
+- Keep route owner/admin as SentrixSafe or a proper multisig, never deployer EOA.
+- Add and verify `perTxCap`.
+- Add and verify `dailyCap`.
+- Add and verify `totalMintCap`.
+- Monitor Base locked collateral vs Sentrix sUSDC totalSupply.
+- Monitor failed and pending Hyperlane messages.
+- Keep the incident runbook current and linked from operator docs.
+- Do not claim Circle-native USDC on Sentrix.
+- Describe sUSDC publicly as bridged USDC backed 1:1 by USDC locked on the Base route.
+- Add a public warning for any testnet-only route.
+- Never use NoopIsm on a mainnet route.
+
+## Gitignore And Secret Verification
+
+Run these checks before every bridge PR:
+
+```bash
+git check-ignore -v .env || true
+git check-ignore -v .env.local || true
+git check-ignore -v .env.example || true
+git grep -n "HYP_KEY\\|PRIVATE_KEY\\|MNEMONIC\\|seed phrase\\|deployer key" -- . ':!*.example' ':!*.md' || true
+git status --ignored -s
+```
+
+Expected behavior: `.env` and `.env.local` are ignored, `.env.example` is not ignored, and tracked files do not contain private keys or mnemonic material.
 
 ## Required Tests
 
