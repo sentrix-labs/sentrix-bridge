@@ -1,24 +1,14 @@
 {
   "name": "Base Sepolia USDC -> Sentrix Testnet sUSDC",
-  "status": "WARP_DEPLOY_BLOCKED_BY_SENTRIX_RPC_BUG",
-  "warpDeployBlocker": {
-    "summary": "Sentrix Testnet eth_getTransactionByHash returns chain-native shape ({block_hash, transaction: {amount, chain_id, data}}) instead of standard Ethereum JSON-RPC shape ({blockHash, from, to, input, ...}). Hyperlane CLI uses ethers.js getTransaction(), which throws 'missing from address' once the post-broadcast poll runs, even though the tx itself landed. eth_sendRawTransaction and eth_getTransactionReceipt return the standard shape, so cast send works.",
-    "partialDeployedOnSentrix": {
-      "ProxyAdmin": "0xF62f7Dc9a57da3eD40336AD6CdF984B10f1EA194",
-      "HypERC20Implementation": "0xD3d5A0b3Fa62C58C1F53e0186A4c4651fcDB3beD",
-      "constructorArgs_HypERC20": "(6, 1, 1, 0x9741D99270aF14D4baca0e387B6ac0500b9a288F)"
-    },
-    "stillPendingOnSentrix": "TransparentUpgradeableProxy wrapping HypERC20 + initialize() call",
-    "stillPendingOnBaseSepolia": "Everything (HypERC20Collateral impl + proxy + initialize)",
-    "remainingCrossChain": "enrollRemoteRouter both sides + setDestinationGas"
-  },
+  "status": "DEPLOYED",
+  "deployedAt": "2026-05-20T08:09Z",
   "environment": "testnet",
   "source": {
     "chain": "basesepolia",
     "chainId": 84532,
     "collateralToken": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     "collateralDecimals": 6,
-    "router": "",
+    "router": "0x8c8C05D6B689C8BBb4f106AbB6E916e928a61e70",
     "mailbox": "0x6966b0E55883d49BFB24539356a2f8A673E02039"
   },
   "destination": {
@@ -27,7 +17,7 @@
     "syntheticTokenName": "Sentrix Bridged USDC",
     "syntheticTokenSymbol": "sUSDC",
     "syntheticDecimals": 6,
-    "router": "",
+    "router": "0x58758796A7D0124585499D589f89ec2336Aa49f7",
     "mailbox": "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"
   },
   "security": {

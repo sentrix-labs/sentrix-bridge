@@ -17,6 +17,6 @@ blockExplorers:
     apiUrl: https://testnet-scan.sentrixchain.com/api
     family: etherscan
 blocks:
-  confirmations: 3
+  confirmations: 1
   reorgPeriod: 10
   estimateBlockTime: 2
