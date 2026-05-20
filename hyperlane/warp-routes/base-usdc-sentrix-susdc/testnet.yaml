@@ -1,0 +1,28 @@
+# Hyperlane Warp Route deploy config.
+# Route: Base Sepolia native USDC collateral -> Sentrix Testnet synthetic sUSDC.
+#
+# Run only after replacing Sentrix Testnet NoopIsm with MultisigIsm or accepting
+# that this is a zero-value/smoke-test route.
+---
+basesepolia:
+  type: collateral
+  token: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  name: "USD Coin"
+  symbol: "USDC"
+  decimals: 6
+  mailbox: "${BASE_SEPOLIA_MAILBOX}"
+  interchainSecurityModule: "${BASE_SEPOLIA_ISM}"
+  owner: "${OWNER_ADDRESS}"
+  destinationGas:
+    "7120": "125000"
+
+sentrixtestnet:
+  type: synthetic
+  name: "Sentrix Bridged USDC"
+  symbol: "sUSDC"
+  decimals: 6
+  mailbox: "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"
+  interchainSecurityModule: "${SENTRIX_TESTNET_ISM}"
+  owner: "${SENTRIX_SAFE_ADDRESS}"
+  destinationGas:
+    "84532": "125000"

@@ -1,0 +1,22 @@
+name: sentrixmainnet
+displayName: Sentrix Mainnet
+displayNameShort: Sentrix
+chainId: ${SENTRIX_MAINNET_CHAIN_ID}
+domainId: ${SENTRIX_MAINNET_CHAIN_ID}
+protocol: ethereum
+isTestnet: false
+rpcUrls:
+  - http: ${SENTRIX_MAINNET_RPC}
+nativeToken:
+  name: Sentrix
+  symbol: SRX
+  decimals: 18
+blockExplorers:
+  - name: Sentrix Explorer
+    url: https://scan.sentrixchain.com
+    apiUrl: https://scan.sentrixchain.com/api
+    family: etherscan
+blocks:
+  confirmations: 6
+  reorgPeriod: 20
+  estimateBlockTime: 2

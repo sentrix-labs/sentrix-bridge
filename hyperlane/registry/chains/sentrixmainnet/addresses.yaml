@@ -1,0 +1,7 @@
+mailbox: ""
+merkleTreeHook: ""
+validatorAnnounce: ""
+interchainGasPaymaster: ""
+defaultIsm: ""
+notes:
+  deploymentGate: "Mainnet Hyperlane core addresses must be filled only after audited core deployment and testnet signoff."

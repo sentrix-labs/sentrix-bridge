@@ -1,0 +1,22 @@
+name: sentrixtestnet
+displayName: Sentrix Testnet
+displayNameShort: Sentrix Testnet
+chainId: 7120
+domainId: 7120
+protocol: ethereum
+isTestnet: true
+rpcUrls:
+  - http: ${SENTRIX_TESTNET_RPC}
+nativeToken:
+  name: Sentrix
+  symbol: SRX
+  decimals: 18
+blockExplorers:
+  - name: Sentrix Testnet Explorer
+    url: https://testnet-scan.sentrixchain.com
+    apiUrl: https://testnet-scan.sentrixchain.com/api
+    family: etherscan
+blocks:
+  confirmations: 3
+  reorgPeriod: 10
+  estimateBlockTime: 2

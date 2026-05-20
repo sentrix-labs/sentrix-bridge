@@ -18,8 +18,8 @@ interface IRecipientWithIsm {
 }
 
 /// @notice Deploy a MultisigIsm on the current chain via the operator's
-/// chosen factory (Hyperlane Labs' canonical factory address per chain
-/// is in `@hyperlane-xyz/registry`). Two modes:
+/// chosen factory. Hyperlane Labs' canonical factory address per chain
+/// is in the Hyperlane registry. Two modes:
 ///   - Deploy-only (default) — just deploy the ISM, print the address.
 ///     Selected when DEPLOY_ONLY=1 OR when SWAP_TARGETS is unset.
 ///     Operator manually swaps target contracts via `cast send` later.
@@ -36,16 +36,22 @@ interface IRecipientWithIsm {
 ///   - MULTISIG_ISM_THRESHOLD: m of n (uint8)
 ///   - SWAP_TARGETS: optional comma-separated recipient addresses
 ///   - DEPLOY_ONLY: optional; "1" forces deploy-only and refuses any swap
-///   - DEPLOYER_PK: deployer key
+///   - DEPLOYER_PK: deployment signer env
 ///
-/// Mainnet guard: refuses to run on chainid 7119 unless ALLOW_MAINNET_DEPLOY=1.
-/// Same pattern as DeployLZ-* scripts.
+/// Network guard: defaults to Sentrix Testnet (7120) and Base Sepolia (84532).
+/// Mainnet deployment is blocked unless an explicit mainnet override is set.
 contract DeployMultisigIsm is Script {
     function run() external {
-        if (block.chainid == 7119) {
+        if (block.chainid == 1 || block.chainid == 7119 || block.chainid == 8453) {
             require(
-                vm.envOr("ALLOW_MAINNET_DEPLOY", false),
-                "Mainnet deploy requires explicit ALLOW_MAINNET_DEPLOY=1"
+                vm.envOr("ALLOW_MAINNET_ISM_DEPLOY", false),
+                "Mainnet ISM deploy requires explicit ALLOW_MAINNET_ISM_DEPLOY=1"
+            );
+        }
+        if (block.chainid != 7120 && block.chainid != 84532) {
+            require(
+                vm.envOr("ALLOW_OTHER_TESTNET_ISM_DEPLOY", false),
+                "ISM deploy path is limited to Sentrix Testnet/Base Sepolia by default"
             );
         }
 

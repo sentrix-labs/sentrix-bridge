@@ -1,0 +1,6 @@
+mailbox: "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"
+merkleTreeHook: "0x6A192C8fEA612CA3aa204035e51F6a624b0F1467"
+validatorAnnounce: ""
+interchainGasPaymaster: ""
+defaultIsm: "0x28834AA535F3130f0F60571Ac7a813195aE56eC6"
+# ismRisk: defaultIsm above is NoopIsm. The active warp route uses a deployed MultisigIsm instead.

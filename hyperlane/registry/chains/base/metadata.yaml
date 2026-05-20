@@ -1,0 +1,22 @@
+name: base
+displayName: Base
+displayNameShort: Base
+chainId: 8453
+domainId: 8453
+protocol: ethereum
+isTestnet: false
+rpcUrls:
+  - http: ${BASE_MAINNET_RPC}
+nativeToken:
+  name: Ether
+  symbol: ETH
+  decimals: 18
+blockExplorers:
+  - name: BaseScan
+    url: https://basescan.org
+    apiUrl: https://api.basescan.org/api
+    family: etherscan
+blocks:
+  confirmations: 12
+  reorgPeriod: 100
+  estimateBlockTime: 2

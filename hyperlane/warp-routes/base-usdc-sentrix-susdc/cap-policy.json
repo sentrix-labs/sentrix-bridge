@@ -1,0 +1,21 @@
+{
+  "route": "base-usdc-sentrix-susdc",
+  "unit": "USDC base units with 6 decimals",
+  "testnet": {
+    "perTxCap": "${BRIDGE_PER_TX_CAP_USDC}",
+    "dailyCap": "${BRIDGE_DAILY_CAP_USDC}",
+    "totalMintCap": "${BRIDGE_TOTAL_MINT_CAP_USDC}",
+    "enforcement": "Required before value-bearing tests if supported by selected Hyperlane hook/router wrapper."
+  },
+  "mainnet": {
+    "perTxCap": "${BRIDGE_PER_TX_CAP_USDC}",
+    "dailyCap": "${BRIDGE_DAILY_CAP_USDC}",
+    "totalMintCap": "${BRIDGE_TOTAL_MINT_CAP_USDC}",
+    "enforcement": "Required before mainnet beta. Do not rely on documentation-only caps."
+  },
+  "notes": [
+    "Native Hyperlane collateral/synthetic routers do not by themselves guarantee all Sentrix beta cap semantics.",
+    "If current Hyperlane contracts cannot enforce perTxCap, dailyCap, and totalMintCap directly, deploy a reviewed hook or wrapper that cannot withdraw user funds and cannot mint/release arbitrarily.",
+    "Frontend limits are advisory only and do not count as cap enforcement."
+  ]
+}
