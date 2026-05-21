@@ -87,7 +87,13 @@
     ],
     "relayer": {
       "image": "gcr.io/abacus-labs-dev/hyperlane-agent:latest",
-      "signer": "0xbb02915caBed947f151600944FaB9318A6aC4836",
+      "signer": "0xD98D63Ea6BB6784974931ae566f53398aF7Cc093",
+      "signerSeparatedFromDeployerAtTx": {
+        "sentrixFundingTx": "0x19ffac8cc19fc6d29cc2914f812ab26e10a5918ac0160926682c9b6911d28278",
+        "baseSepoliaFundingTx": "0x03ab2a650aff1c016ecba7338310c5135b2051aa475032f01c37453f84364ccd",
+        "switchedAt": "2026-05-21T20:38Z",
+        "previousSigner": "0xbb02915caBed947f151600944FaB9318A6aC4836 (deployer — M-1 audit finding)"
+      },
       "whitelist": [{"destinationDomain": 7120}],
       "firstAutoRelayTx": "0x098f9e8b71de01f7cfbeec6147ac21f5b855de15a97daf60c9910797f2ff1cf8",
       "firstAutoRelayMsgId": "0x083b813b74a1fea56e36916fe9afc5f77849afb1fa9798833503882fc3db27fa",
@@ -95,9 +101,11 @@
     }
   },
   "openAuditFindings": [
-    "H-2: Hook / IGP not set on either router. Operationally not blocking now that auto-relay is live and self-funded by deployer; revisit if external relayers want to participate.",
-    "M-1: Operationally the deployer key still doubles as the relayer signer (`HYP_DEFAULTSIGNER_KEY` == deployer). Separate to a dedicated relayer EOA + fund it from deployer.",
+    "H-2: Hook / IGP not set on either router. Operationally not blocking now that auto-relay is live and self-funded; revisit if external relayers want to participate.",
     "Base-side limitation: collateral router is owner-less; admin functions unreachable. Migration ticket required to introduce a real Base-side Safe."
+  ],
+  "closedAuditFindings": [
+    "M-1: relayer signer separated from deployer 2026-05-21. Dedicated EOA 0xD98D63Ea6BB6784974931ae566f53398aF7Cc093 funded 1 SRX (Sentrix) + 5 mETH (Base Sepolia). End-to-end auto-relay verified — process() tx now signed by relayer EOA, not deployer."
   ],
   "chainRpcFixesShippedAlongside": [
     "PR #692 — eth_getTransactionByHash returns EVM-standard JSON shape",
