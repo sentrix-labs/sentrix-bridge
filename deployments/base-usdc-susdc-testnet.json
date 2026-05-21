@@ -2,6 +2,7 @@
   "name": "Base Sepolia USDC -> Sentrix Testnet sUSDC",
   "status": "DEPLOYED",
   "deployedAt": "2026-05-20T08:09Z",
+  "lastAuditedAt": "2026-05-21T12:00Z",
   "environment": "testnet",
   "source": {
     "chain": "basesepolia",
@@ -9,7 +10,9 @@
     "collateralToken": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     "collateralDecimals": 6,
     "router": "0x8c8C05D6B689C8BBb4f106AbB6E916e928a61e70",
-    "mailbox": "0x6966b0E55883d49BFB24539356a2f8A673E02039"
+    "mailbox": "0x6966b0E55883d49BFB24539356a2f8A673E02039",
+    "proxyAdmin": "0xE38763EF6771F0Da192f1e92A0c8BbC2b50649A6",
+    "hypErc20CollateralImpl": "0x6A033c3431D15cE3ED686cc9688a3ADc9d956A5D"
   },
   "destination": {
     "chain": "sentrixtestnet",
@@ -18,22 +21,66 @@
     "syntheticTokenSymbol": "sUSDC",
     "syntheticDecimals": 6,
     "router": "0x58758796A7D0124585499D589f89ec2336Aa49f7",
-    "mailbox": "0x9741D99270aF14D4baca0e387B6ac0500b9a288F"
+    "mailbox": "0x9741D99270aF14D4baca0e387B6ac0500b9a288F",
+    "proxyAdmin": "0x67Cc6D15c6D962E501729B8FB769dB232Dd2e540",
+    "hypErc20Impl": "0x813B35f29459512ca5fd6453488322f0742DD83C",
+    "hypErc20ImplVariant": "HypERC20Capped (v2026-05-21, cap-aware fork of stock HypERC20)"
   },
   "security": {
-    "requiredIsm": "MultisigIsm or stronger",
-    "currentSentrixTestnetIsm": "0x0B39CEA3A09be4bd84Fc057d1baC81A8291a22aE",
-    "currentRisk": "1-of-1 MultisigIsm where validator == deployer EOA. Smoke-test only; replace validator before funded/mainnet.",
-    "sentrixMultisigIsm": "0x0B39CEA3A09be4bd84Fc057d1baC81A8291a22aE",
-    "baseSepoliaMultisigIsm": "0xbDFEa2B6CC1EB75092C0142BcfcEB24E64862d4f",
-    "sentrixMultisigIsmFactory": "0x3bf27f1438024FeE297CFAD380643F65205d527e",
-    "baseSepoliaMultisigIsmFactory": "0xfc6e546510dC9d76057F1f76633FCFfC188CB213",
-    "owner": "0xc9D7a61D7C2F428F6A055916488041fD00532110",
-    "sentrixSafe": "0xc9D7a61D7C2F428F6A055916488041fD00532110"
+    "sentrixSafe": "0xc9D7a61D7C2F428F6A055916488041fD00532110",
+    "sentrixSafeOnSentrixIsContract": true,
+    "sentrixSafeOnBaseSepoliaIsContract": false,
+    "sentrixSafeBaseLimitation": "Address has no code on Base Sepolia. The collateral router's onlyOwner functions cannot be invoked from this chain — Base side is effectively immutable. A real Gnosis Safe deployment on Base + router migration is the only path to recover admin control there. Tracked as separate work.",
+    "sentrixIsm": {
+      "address": "0xdfE0f616bA2468A3898eb32f8c70F899f6476fC4",
+      "factory": "0x3bf27f1438024FeE297CFAD380643F65205d527e",
+      "kind": "StaticMessageIdMultisigIsm",
+      "validators": [
+        "0x4f9988506a5e9d7a4b0eae15e5b71a02834d6c0f",
+        "0x245785f409d853bb04d6910a3a0f78df7cbd184c",
+        "0x47b21b77155efee909fcf9d8568443560a08e656"
+      ],
+      "threshold": 2,
+      "swappedFrom": "0x0B39CEA3A09be4bd84Fc057d1baC81A8291a22aE",
+      "swappedAtTx": "0xedccfc401603b55b5f50ff6fea43015351f38c188ff2bde824d0f8093e76799c",
+      "swappedReason": "Audit C-1: old 1-of-1 ISM had validator == deployer EOA. Replaced via SentrixSafe.execTransaction with a 2-of-3 set of independent validator EOAs."
+    },
+    "baseSepoliaIsm": {
+      "address": "0xbDFEa2B6CC1EB75092C0142BcfcEB24E64862d4f",
+      "factory": "0xfc6e546510dC9d76057F1f76633FCFfC188CB213",
+      "kind": "StaticMessageIdMultisigIsm",
+      "validators": ["0xbb02915caBed947f151600944FaB9318A6aC4836"],
+      "threshold": 1,
+      "knownRisk": "Validator == deployer EOA and the collateral router is owner-less (see sentrixSafeBaseLimitation). Compromise of deployer key alone is sufficient to forge an inbound message and drain locked USDC. Cannot be fixed without redeploying the collateral router under a real Base-side Safe."
+    }
   },
   "caps": {
-    "perTxCap": "",
-    "dailyCap": "",
-    "totalMintCap": ""
-  }
+    "configured": true,
+    "configuredAtTx": "0x98c5f4e6b26f855a5612ec9e6969e20e71d85f10d36830b96c66719491ef19e8",
+    "perTxCap": "100000000",
+    "dailyCap": "1000000000",
+    "totalMintCap": "10000000000",
+    "denom": "6-decimal sUSDC base units (perTxCap=100 sUSDC, dailyCap=1000 sUSDC, totalMintCap=10000 sUSDC)",
+    "enforcement": "On-chain via HypERC20Capped._transferTo. Outbound burns are uncapped (user can always exit what they hold). Caps only block inbound mint path so the worst-case impact of a forged ISM message is bounded."
+  },
+  "verification": {
+    "sourcifyServer": "https://verify.sentrixchain.com",
+    "sentrixContracts": {
+      "0x58758796A7D0124585499D589f89ec2336Aa49f7": "partial_match (TransparentUpgradeableProxy)",
+      "0xD3d5A0b3Fa62C58C1F53e0186A4c4651fcDB3beD": "partial_match (HypERC20 — first impl, pre-cap-upgrade)",
+      "0x813B35f29459512ca5fd6453488322f0742DD83C": "not_yet_verified (HypERC20Capped — current impl, deployed 2026-05-21)",
+      "0xF62f7Dc9a57da3eD40336AD6CdF984B10f1EA194": "partial_match (ProxyAdmin)"
+    },
+    "baseSepoliaContracts": {
+      "0x8c8C05D6B689C8BBb4f106AbB6E916e928a61e70": "partial_match (TransparentUpgradeableProxy on sourcify.dev)",
+      "0xE38763EF6771F0Da192f1e92A0c8BbC2b50649A6": "partial_match (ProxyAdmin on sourcify.dev)",
+      "0x6A033c3431D15cE3ED686cc9688a3ADc9d956A5D": "already_verified_upstream_by_hyperlane_team"
+    }
+  },
+  "openAuditFindings": [
+    "H-2: Hook / IGP not set on either router. Only meaningful once an auto-relayer is running — manual relay flow does not need IGP.",
+    "H-3 + H-4: No Hyperlane validator / relayer agents running. Every bridge tx requires manual `cast wallet sign` + `cast send process`. Production needs both agents on dedicated hosts with isolated keys.",
+    "M-1: Operationally the deployer key still doubles as the relayer key. Even with C-1 fixed, this concentrates the spend-side. Separate to a dedicated relayer EOA when H-4 lands.",
+    "Base-side limitation: collateral router is owner-less; admin functions unreachable. Migration ticket required to introduce a real Base-side Safe."
+  ]
 }
