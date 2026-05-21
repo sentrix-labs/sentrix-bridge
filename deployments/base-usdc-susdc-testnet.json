@@ -2,7 +2,7 @@
   "name": "Base Sepolia USDC -> Sentrix Testnet sUSDC",
   "status": "DEPLOYED",
   "deployedAt": "2026-05-20T08:09Z",
-  "lastAuditedAt": "2026-05-21T12:00Z",
+  "lastAuditedAt": "2026-05-21T16:15Z",
   "environment": "testnet",
   "source": {
     "chain": "basesepolia",
@@ -77,10 +77,33 @@
       "0x6A033c3431D15cE3ED686cc9688a3ADc9d956A5D": "already_verified_upstream_by_hyperlane_team"
     }
   },
+  "agents": {
+    "status": "AUTO_RELAY_LIVE",
+    "host": "vps4-dev-sentriscloud",
+    "validators": [
+      {"name": "val2", "addr": "0x4f9988506a5e9d7a4b0eae15e5b71a02834d6c0f", "storage": "file:///checkpoints/basesepolia-val2", "announceTx": "0x2f499a24a4fd0cda513aa40b1cbb6a829313bbdde28e3d7086cb286f265985d4"},
+      {"name": "val3", "addr": "0x245785f409d853bb04d6910a3a0f78df7cbd184c"},
+      {"name": "val4", "addr": "0x47b21b77155efee909fcf9d8568443560a08e656"}
+    ],
+    "relayer": {
+      "image": "gcr.io/abacus-labs-dev/hyperlane-agent:latest",
+      "signer": "0xbb02915caBed947f151600944FaB9318A6aC4836",
+      "whitelist": [{"destinationDomain": 7120}],
+      "firstAutoRelayTx": "0x098f9e8b71de01f7cfbeec6147ac21f5b855de15a97daf60c9910797f2ff1cf8",
+      "firstAutoRelayMsgId": "0x083b813b74a1fea56e36916fe9afc5f77849afb1fa9798833503882fc3db27fa",
+      "firstAutoRelayAmount": "100000 sUSDC base units (0.1 USDC)"
+    }
+  },
   "openAuditFindings": [
-    "H-2: Hook / IGP not set on either router. Only meaningful once an auto-relayer is running — manual relay flow does not need IGP.",
-    "H-3 + H-4: No Hyperlane validator / relayer agents running. Every bridge tx requires manual `cast wallet sign` + `cast send process`. Production needs both agents on dedicated hosts with isolated keys.",
-    "M-1: Operationally the deployer key still doubles as the relayer key. Even with C-1 fixed, this concentrates the spend-side. Separate to a dedicated relayer EOA when H-4 lands.",
+    "H-2: Hook / IGP not set on either router. Operationally not blocking now that auto-relay is live and self-funded by deployer; revisit if external relayers want to participate.",
+    "M-1: Operationally the deployer key still doubles as the relayer signer (`HYP_DEFAULTSIGNER_KEY` == deployer). Separate to a dedicated relayer EOA + fund it from deployer.",
     "Base-side limitation: collateral router is owner-less; admin functions unreachable. Migration ticket required to introduce a real Base-side Safe."
+  ],
+  "chainRpcFixesShippedAlongside": [
+    "PR #692 — eth_getTransactionByHash returns EVM-standard JSON shape",
+    "PR #696 — B3 reconcile fail-soft on missing trie nodes",
+    "PR #702 — RPC pending fields + coinbase (intermediate)",
+    "PR #703 — null v/r/s for undecodable EVM tx sigs",
+    "PR #704 — eth_getTransactionCount + eth_call accept any block tag; empty logsBloom 304→256 bytes"
   ]
 }
