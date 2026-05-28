@@ -32,7 +32,7 @@ Discord is fastest for first contact; forum post follows for the formal request 
 > | Native token | SRX | SRX (testnet) |
 > | Consensus | Voyager DPoS+BFT (Tendermint-style, single-block finality) | Same |
 > | Block time | ~2.0-2.5s mainnet (WAN-jitter floor) | ~0.3s testnet |
-> | EVM | revm 37, Solidity 0.8.x, Cancun-enabled | Same |
+> | EVM | revm 38, Solidity 0.8.x, Cancun-enabled | Same |
 > | Codebase | github.com/sentrix-labs/sentrix (BUSL-1.1) | Same |
 >
 > #### Sample contracts already deployed on Sentrix Chain
