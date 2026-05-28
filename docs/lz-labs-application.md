@@ -14,7 +14,7 @@ Submit via `forms.layerzero.foundation` or LayerZero Discord `#chain-integration
 | Block time (mainnet) | ~2.0-2.5 s/blk |
 | Block time (testnet) | ~0.3-0.4 s/blk |
 | Finality | Single-block (BFT instant finality at h+1) |
-| EVM compatibility | revm 37, Solidity 0.8.x |
+| EVM compatibility | revm 38, Solidity 0.8.x |
 | Codebase | Open-source Rust L1, `github.com/sentrix-labs/sentrix` (BUSL-1.1) |
 
 ## Endpoints

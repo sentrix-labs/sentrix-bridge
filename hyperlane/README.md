@@ -9,7 +9,7 @@ Hyperlane v3 is **permissionless** — chain integration doesn't require approva
 | License | Apache 2.0 (vs LZ's BUSL) |
 | Domain ID | Convention is `chain_id` — Sentrix mainnet = 7119, testnet = 7120 |
 | Solidity | `^0.8.33` (need solc 0.8.33; ours pins 0.8.24) |
-| EVM version | Cancun (revm 37 ✓ supports) |
+| EVM version | Cancun (revm 38 ✓ supports) |
 | Sources | `hyperlane-xyz/hyperlane-monorepo` (cloned at `hyperlane/hyperlane-monorepo/`, gitignored) |
 | Architecture | Mailbox + Hook + ISM (Interchain Security Module) |
 
